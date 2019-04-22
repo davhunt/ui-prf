@@ -1,0 +1,22 @@
+{
+  "name": "ui-prf",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "lite-server",
+    "bundle": "browserify bundle.js -o bundled.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dat.gui": "^0.7.6",
+    "ndarray": "^1.0.18",
+    "nifti-js": "^1.0.1",
+    "npm": "^6.9.0",
+    "pako": "^1.0.10",
+    "panning-orbit-controls": "^1.0.1",
+    "three": "^0.103.0",
+    "vue": "^2.6.10"
+  }
+}

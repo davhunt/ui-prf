@@ -1,0 +1,8 @@
+#three {
+position: fixed;
+background: radial-gradient( circle, transparent 30%, black 150%), rgb(46, 39, 39);
+top: 0;
+bottom: 0;
+left: 0;
+right: 0;
+}
