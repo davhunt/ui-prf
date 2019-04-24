@@ -251,6 +251,7 @@ new Vue({
                             continue;
                         }
                         let h = map_value(v, v_stats.min, v_stats.max, 0, 240);
+                        //h = 240;
                         //if(i % 5000 == 0) console.log(v, h);
                         let s = 1;
                         let l = r2;
@@ -369,20 +370,15 @@ new Vue({
             let all = Promise.all(promises).then(geometries=>{
                 geometries.map(geometry=>geometry.computeVertexNormals());
 
-                let lh_material = new THREE.MeshLambertMaterial({
+                let material = new THREE.MeshLambertMaterial({
                     vertexColors: THREE.VertexColors,
                     morphTargets: true,
                     morphNormals: true, 
                 });
-                this.mesh.lh = this.create_mesh(lh_material, geometries[0], geometries[1], geometries[2]);
+                this.mesh.lh = this.create_mesh(material, geometries[0], geometries[1], geometries[2]);
                 this.t.scene.add(this.mesh.lh);
 
-                let rh_material = new THREE.MeshLambertMaterial({
-                    vertexColors: THREE.VertexColors,
-                    morphTargets: true,
-                    morphNormals: true, 
-                });
-                this.mesh.rh = this.create_mesh(rh_material, geometries[3], geometries[4], geometries[5]);
+                this.mesh.rh = this.create_mesh(material, geometries[3], geometries[4], geometries[5]);
                 this.t.scene.add(this.mesh.rh);
                 
                 console.log("loaded all vtks");
@@ -440,8 +436,8 @@ new Vue({
                     let N = nifti.parse(pako.inflate(buf));
                     this.prf.p_angle = ndarray(N.data, N.sizes.slice().reverse());
                     this.prf.p_angle_stats = this.compute_stats(N.data);
-                    //console.log("p_angle");
-                    //console.dir(this.prf.p_angle_stats);
+                    console.log("p_angle");
+                    console.dir(this.prf.p_angle_stats);
                     resolve();
                 });
             });
