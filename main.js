@@ -218,8 +218,10 @@ new Vue({
             let rh_geometry = this.mesh.rh.geometry;
             let rh_color = rh_geometry.attributes.color;
             let rh_position = rh_geometry.attributes.position;
+
  
             function set_color(color, position) {
+
                 for(var i = 0;i < color.count;++i) { 
                     if(!r2_data) {
                         //must be none
@@ -236,7 +238,7 @@ new Vue({
                     let vy = Math.round((y - this.prf.header.spaceOrigin[1]) / this.prf.header.thicknesses[1]);
                     let vz = Math.round((z - this.prf.header.spaceOrigin[2]) / this.prf.header.thicknesses[2]);
 
-                    let r2 = r2_data.get(vz, vy, vz);
+                    let r2 = r2_data.get(vz, vy, vx);
                     if(isNaN(r2)) {
                         color.setXYZ(i, 50, 50, 50); 
                         continue;
@@ -244,46 +246,52 @@ new Vue({
                     //TODO - the way r2/min/max is applied is wrong
                     r2 = map_value(r2, this.prf.r2_stats.min - this.gui.r2_min, this.gui.r2_max/this.prf.r2_stats.max, 0, 1);
 
+                    let h, s, l;
                     if(v_data) {
-                        let v = v_data.get(vz, vy, vz);      
+                        let v = v_data.get(vz, vy, vx);      
                         if(isNaN(v)) {
                             color.setXYZ(i, 50, 50, 50); 
                             continue;
                         }
-                        let h = map_value(v, v_stats.min, v_stats.max, 0, 240);
-                        //h = 240;
-                        //if(i % 5000 == 0) console.log(v, h);
-                        let s = 1;
-                        let l = r2;
+                        h = map_value(v, v_stats.min, v_stats.max, 0, 240); //red to blue
+                        s = 1;
+                        l = r2;
 
-                        //convert hsl to rgb
-                        let c = (1 - Math.abs(2 * l - 1)) * s;
-                        let x = c * (1 - Math.abs((h / 60) % 2 - 1));
-                        let m = l - c/2;
-                        let r = 0;
-                        let g = 0;
-                        let b = 0;
-                        if (0 <= h && h < 60) {
-                            r = c; g = x; b = 0;
-                        } else if (60 <= h && h < 120) {
-                            r = x; g = c; b = 0;
-                        } else if (120 <= h && h < 180) {
-                            r = 0; g = c; b = x;
-                        } else if (180 <= h && h < 240) {
-                            r = 0; g = x; b = c;
-                        } else if (240 <= h && h < 300) {
-                            r = x; g = 0; b = c;
-                        } else if (300 <= h && h < 360) {
-                            r = c; g = 0; b = x;
-                        }
-                        r = Math.round((r + m) * 255);
-                        g = Math.round((g + m) * 255);
-                        b = Math.round((b + m) * 255);
-                        color.setXYZ(i, r, g, b);
                     } else {
                         //r2 only
-                        color.setXYZ(i, r2*255, 0, 0);
+                        h = map_value(r2, 0, 1, 0, 60); //red to yellow
+                        s = 1;
+                        l = r2;
+                        if(h > 60) {
+                            l += h/60;
+                            h = 60; 
+                        }
                     }
+                    
+                    //convert hsl to rgb
+                    let c = (1 - Math.abs(2 * l - 1)) * s;
+                    let x1 = c * (1 - Math.abs((h / 60) % 2 - 1));
+                    let m = l - c/2;
+                    let r = 0;
+                    let g = 0;
+                    let b = 0;
+                    if (0 <= h && h < 60) {
+                        r = c; g = x1; b = 0;
+                    } else if (60 <= h && h < 120) {
+                        r = x1; g = c; b = 0;
+                    } else if (120 <= h && h < 180) {
+                        r = 0; g = c; b = x1;
+                    } else if (180 <= h && h < 240) {
+                        r = 0; g = x1; b = c;
+                    } else if (240 <= h && h < 300) {
+                        r = x1; g = 0; b = c;
+                    } else if (300 <= h && h < 360) {
+                        r = c; g = 0; b = x1;
+                    }
+                    r = Math.round((r + m) * 255);
+                    g = Math.round((g + m) * 255);
+                    b = Math.round((b + m) * 255);
+                    color.setXYZ(i, r, g, b);
                 }
             }
             set_color.call(this, rh_color, rh_position);
@@ -422,8 +430,14 @@ new Vue({
                 }).then(buf=>{
                     let N = nifti.parse(pako.inflate(buf));
                     this.prf.header = N;
+                    //console.dir(this.prf.header);
                     this.prf.r2 = ndarray(N.data, N.sizes.slice().reverse());
+                    //this.prf.r2 = ndarray(N.data, N.sizes);
                     this.prf.r2_stats = this.compute_stats(N.data);
+
+                    console.log("voxel 0,0,0");
+                    console.log(this.prf.r2.get(45, 30, 56));
+
                     resolve();
                 });
             });
