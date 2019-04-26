@@ -13,6 +13,7 @@
     "dat.gui": "^0.7.6",
     "ndarray": "^1.0.18",
     "nifti-js": "^1.0.1",
+    "nifti-reader-js": "^0.5.4",
     "npm": "^6.9.0",
     "pako": "^1.0.10",
     "panning-orbit-controls": "^1.0.1",

@@ -37,10 +37,10 @@ new Vue({
                 ui: new dat.GUI(),
 
                 overlay: 'none',
-                r2_min: 0,                  
+                r2_min: 0.1,                  
                 r2_max: 1,                  
 
-                cortical_depth: 0,
+                cortical_depth: 0.5,
                 inflate: 0,
 
                 split: 50,
@@ -48,26 +48,19 @@ new Vue({
             },
 
             prf: {
-                header: null, 
-
                 r2: null,
-                r2_stats: null,
-
                 p_angle: null,
-                p_angle_stats: null,
-
                 rf_width: null,
-                rf_width_stats: null,
-
                 ecc: null,
-                ecc_stats: null,
             },
-               
+
+            loading: false,
             config,
         }
     },
     template: `
     <div>
+        <p class="loading" v-if="loading">Loading... <span style="opacity: 0.5; font-size: 80%">{{loading}}</span></p>
         <div id="three" ref="three" @mousemove="mousemove" @mousedown="mousedown" @mouseup="mouseup"/>
     </div>
     `,
@@ -184,32 +177,38 @@ new Vue({
             //make sure we have everything we need
             if(!this.mesh.lh) return;
             if(!this.mesh.rh) return;
-            if(!this.prf.header) return;
+            if(!this.prf.r2) return;
 
             //console.log("update_color");
-            let v_data;
-            let v_stats;
-            let r2_data;
+            let r2, v;
+            let vmin, vmax;
             switch(this.gui.overlay) {
             case "r2":
-                r2_data = this.prf.r2;
+                r2 = this.prf.r2;
+                vmin = r2.stats.min;
+                vmax = r2.stats.max;
                 break;
             case "r2*polar_angle":
-                r2_data = this.prf.r2;
-                v_data = this.prf.p_angle;
-                v_stats = this.prf.p_angle_stats;
+                r2 = this.prf.r2;
+                v = this.prf.p_angle;
+                vmin = -3.14;
+                vmax = 3.14;
                 break;
             case "r2*rf_width":
-                r2_data = this.prf.r2;
-                v_data = this.prf.rf_width;
-                v_stats = this.prf.rf_width_stats;
+                r2 = this.prf.r2;
+                v = this.prf.rf_width;
+                vmin = v.stats.min;
+                vmax = v.stats.max;
                 break;
             case "r2*eccentricity":
-                r2_data = this.prf.r2;
-                v_data = this.prf.ecc;
-                v_stats = this.prf.ecc_stats;
+                r2 = this.prf.r2;
+                v = this.prf.ecc;
+                vmin = v.stats.min;
+                vmax = v.stats.max;
                 break;
             }
+            //console.log(this.gui.overlay);
+            //console.dir(v);
 
             let lh_geometry = this.mesh.lh.geometry;
             let lh_color = lh_geometry.attributes.color;
@@ -219,12 +218,16 @@ new Vue({
             let rh_color = rh_geometry.attributes.color;
             let rh_position = rh_geometry.attributes.position;
 
- 
+            set_color.call(this, rh_color, rh_position);
+            set_color.call(this, lh_color, lh_position);
+
             function set_color(color, position) {
 
+                color.needsUpdate = true;
+
                 for(var i = 0;i < color.count;++i) { 
-                    if(!r2_data) {
-                        //must be none
+                    if(!r2) {
+                        //must be none - show white-ish brain
                         color.setXYZ(i, 200, 200, 200); 
                         continue;
                     }
@@ -234,34 +237,34 @@ new Vue({
                     let z = position.getZ(i);
                     
                     //convert it to voxel coords and get the value
-                    let vx = Math.round((x - this.prf.header.spaceOrigin[0]) / this.prf.header.thicknesses[0]);
-                    let vy = Math.round((y - this.prf.header.spaceOrigin[1]) / this.prf.header.thicknesses[1]);
-                    let vz = Math.round((z - this.prf.header.spaceOrigin[2]) / this.prf.header.thicknesses[2]);
+                    let header = this.prf.r2.header;
+                    let vx = Math.round((x - header.qoffset_x) / -header.pixDims[1]); //TODO - flip X only if necessary
+                    let vy = Math.round((y - header.qoffset_y) / header.pixDims[2]);
+                    let vz = Math.round((z - header.qoffset_z) / header.pixDims[3]);
+                    let r2_val = r2.get(vx, vy, vz);
 
-                    let r2 = r2_data.get(vz, vy, vx);
-                    if(isNaN(r2)) {
+                    if(isNaN(r2_val)) {
                         color.setXYZ(i, 50, 50, 50); 
                         continue;
                     }
                     //TODO - the way r2/min/max is applied is wrong
-                    r2 = map_value(r2, this.prf.r2_stats.min - this.gui.r2_min, this.gui.r2_max/this.prf.r2_stats.max, 0, 1);
+                    r2_val = map_value(r2_val, this.prf.r2.stats.min - this.gui.r2_min, this.gui.r2_max/this.prf.r2.stats.max, 0, 1);
 
                     let h, s, l;
-                    if(v_data) {
-                        let v = v_data.get(vz, vy, vx);      
-                        if(isNaN(v)) {
+                    if(v) {
+                        let v_val = v.get(vx, vy, vz);      
+                        if(isNaN(v_val)) {
                             color.setXYZ(i, 50, 50, 50); 
                             continue;
                         }
-                        h = map_value(v, v_stats.min, v_stats.max, 0, 240); //red to blue
+                        h = map_value(v_val, vmin, vmax, 0, 240); //red to blue
                         s = 1;
-                        l = r2;
-
+                        l = r2_val;
                     } else {
                         //r2 only
-                        h = map_value(r2, 0, 1, 0, 60); //red to yellow
+                        h = map_value(r2_val, 0, 1, 0, 60); //red to yellow
                         s = 1;
-                        l = r2;
+                        l = r2_val;
                         if(h > 60) {
                             l += h/60;
                             h = 60; 
@@ -294,10 +297,7 @@ new Vue({
                     color.setXYZ(i, r, g, b);
                 }
             }
-            set_color.call(this, rh_color, rh_position);
-            set_color.call(this, lh_color, lh_position);
-            lh_color.needsUpdate = true;
-            rh_color.needsUpdate = true;
+
         },
 
         animate() {
@@ -315,20 +315,6 @@ new Vue({
             this.t.renderer.render(this.t.scene, this.t.camera);
         },
 
-        compute_stats(data) {
-            let min = null;
-            let max = null;
-
-            data.forEach(v=>{
-                if (!isNaN(v)) {
-                    if (min == null) min = v;
-                    else min = v < min ? v : min;
-                    if (max == null) max = v;
-                    else max = v > max ? v : max;
-                }
-            });
-            return {min, max};
-        },
 
         create_mesh(material, base_geometry, white_geometry, inflated_geometry) {
             //first create a normal mesh
@@ -358,7 +344,6 @@ new Vue({
 
         load() {
             let vtkloader = new THREE.VTKLoader();
-
             let vtks = [ 
                 "testdata/lh.pial.vtk",
                 "testdata/lh.white.vtk",
@@ -369,13 +354,14 @@ new Vue({
                 "testdata/rh.inflated.vtk",
             ];
             let promises = vtks.map(vtk=>{
+                this.loading = "surfaces";
                 return new Promise((resolve, reject)=>{
                     vtkloader.load(vtk, resolve);
                 });
             });
 
             console.log("loadin all vtks");
-            let all = Promise.all(promises).then(geometries=>{
+            Promise.all(promises).then(geometries=>{
                 geometries.map(geometry=>geometry.computeVertexNormals());
 
                 let material = new THREE.MeshLambertMaterial({
@@ -390,8 +376,24 @@ new Vue({
                 this.t.scene.add(this.mesh.rh);
                 
                 console.log("loaded all vtks");
-                this.update_color();
                 this.update_position();
+
+                this.loading = "pRF volumes";
+                Promise.all([ 
+                    load_nifti.call(this, "testdata/prf/r2.nii.gz"), 
+                    load_nifti.call(this, "testdata/prf/polarAngle.nii.gz"), 
+                    load_nifti.call(this, "testdata/prf/rfWidth.nii.gz"), 
+                    load_nifti.call(this, "testdata/prf/eccentricity.nii.gz")
+                ]).then(outs=>{
+                    console.log("loaded all nii.gz");
+                    this.prf.r2 = outs[0];
+                    this.prf.p_angle = outs[1];
+                    this.prf.rf_width = outs[2];
+                    this.prf.ecc = outs[3];
+                    this.update_color();
+                    this.loading = false;
+                });
+
             });
             
             /* I am not sure what I can use this for..
@@ -423,69 +425,45 @@ new Vue({
             });
             */
 
-            let r2 = new Promise((resolve, reject)=>{
-                console.log("loading r2");
-                fetch("testdata/prf/r2.nii.gz").then(res=>{
-                    return res.arrayBuffer()
-                }).then(buf=>{
-                    let N = nifti.parse(pako.inflate(buf));
-                    this.prf.header = N;
-                    //console.dir(this.prf.header);
-                    this.prf.r2 = ndarray(N.data, N.sizes.slice().reverse());
-                    //this.prf.r2 = ndarray(N.data, N.sizes);
-                    this.prf.r2_stats = this.compute_stats(N.data);
+            function load_nifti(path) {
+                return new Promise((resolve, reject)=>{
+                    this.loading = path;
+                    fetch(path).then(res=>{
+                        return res.arrayBuffer()
+                    }).then(buf=>{
+                        buf = nifti.decompress(buf);
+                        let header = nifti.readHeader(buf);
+                        let image = nifti.readImage(header, buf);
 
-                    console.log("voxel 0,0,0");
-                    console.log(this.prf.r2.get(45, 30, 56));
+                        switch(header.datatypeCode) {
+                        case 16: //DT_FLOAT32
+                            image = new Float32Array(image);
+                        }
+                        let x_step = 1;
+                        let y_step = header.dims[1];
+                        let z_step = header.dims[1]*header.dims[2];
 
-                    resolve();
+                        let get = function(x, y, z) {
+                            let idx = x_step*x+y_step*y+z_step*z;
+                            return image[idx];
+                        }
+
+                        //find min/max
+                        let min = null;
+                        let max = null;
+                        image.forEach(v=>{
+                            if (!isNaN(v)) {
+                                if (min == null) min = v;
+                                else min = v < min ? v : min;
+                                if (max == null) max = v;
+                                else max = v > max ? v : max;
+                            }
+                        });
+                        resolve({header, image, stats: {min, max}, get});
+                    });
                 });
-            });
+            }
 
-            let p_angle = new Promise((resolve, reject)=>{
-                console.log("loading polarangle");
-                fetch("testdata/prf/polarAngle.nii.gz").then(res=>{
-                    return res.arrayBuffer()
-                }).then(buf=>{
-                    let N = nifti.parse(pako.inflate(buf));
-                    this.prf.p_angle = ndarray(N.data, N.sizes.slice().reverse());
-                    this.prf.p_angle_stats = this.compute_stats(N.data);
-                    console.log("p_angle");
-                    console.dir(this.prf.p_angle_stats);
-                    resolve();
-                });
-            });
-
-            let rf_width = new Promise((resolve, reject)=>{
-                console.log("loading rfwidth");
-                fetch("testdata/prf/rfWidth.nii.gz").then(res=>{
-                    return res.arrayBuffer()
-                }).then(buf=>{
-                    let N = nifti.parse(pako.inflate(buf));
-                    this.prf.rf_width = ndarray(N.data, N.sizes.slice().reverse());
-                    this.prf.rf_width_stats = this.compute_stats(N.data);
-                    //console.log("rfWidth");
-                    //console.dir(this.prf.rf_width_stats);
-                    resolve();
-                });
-            });
-
-            let ecc = new Promise((resolve, reject)=>{
-                console.log("loading eccentricity");
-                fetch("testdata/prf/eccentricity.nii.gz").then(res=>{
-                    return res.arrayBuffer()
-                }).then(buf=>{
-                    let N = nifti.parse(pako.inflate(buf));
-                    this.prf.ecc = ndarray(N.data, N.sizes.slice().reverse());
-                    this.prf.ecc_stats = this.compute_stats(N.data);
-                    resolve();
-                });
-            });
-
-            Promise.all([ r2, p_angle, rf_width, ecc ]).then(()=>{
-                console.log("loaded all nifties");
-                this.update_color();
-            });
         },
     },
 });
