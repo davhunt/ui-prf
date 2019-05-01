@@ -435,9 +435,24 @@ new Vue({
                         let header = nifti.readHeader(buf);
                         let image = nifti.readImage(header, buf);
 
+                        /*
+                        https://nifti.nimh.nih.gov/pub/dist/src/niftilib/nifti1.h
+                        #define DT_UINT8                   2
+                        #define DT_INT16                   4
+                        #define DT_INT32                   8
+                        #define DT_FLOAT32                16
+                        #define DT_COMPLEX64              32
+                        #define DT_FLOAT64                64
+                        #define DT_RGB24                 128
+                        */
+                       //https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects#Indexed_collections
                         switch(header.datatypeCode) {
+                        case 8: //DT_INT32
+                            image = new Int32Array(image);
+                            break;
                         case 16: //DT_FLOAT32
                             image = new Float32Array(image);
+                            break;
                         }
                         let x_step = 1;
                         let y_step = header.dims[1];
@@ -451,6 +466,7 @@ new Vue({
                         //find min/max
                         let min = null;
                         let max = null;
+                        debugger;
                         image.forEach(v=>{
                             if (!isNaN(v)) {
                                 if (min == null) min = v;
@@ -459,6 +475,7 @@ new Vue({
                                 else max = v > max ? v : max;
                             }
                         });
+                        console.dir({min, max})
                         resolve({header, image, stats: {min, max}, get});
                     });
                 });

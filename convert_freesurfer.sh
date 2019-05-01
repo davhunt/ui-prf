@@ -3,6 +3,7 @@
 set -e
 set -x
 
+#for converting to vtk
 #mri_convert testdata/output/mri/aparc+aseg.mgz  testdata/aparc+aseg.nii.gz
 
 mris_convert --to-scanner testdata/output/surf/lh.white testdata/lh.white.vtk
