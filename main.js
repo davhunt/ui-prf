@@ -30,6 +30,9 @@ new Vue({
                 lh: null,
                 rh: null,
 
+                white_lh: null,
+                white_rh: null,
+
                 cube: null, //for test
             },
 
@@ -146,7 +149,7 @@ new Vue({
             overlay.add(this.gui, 'r2_min', 0, 0.5).step(0.01).onChange(v=>{
                 this.update_color();
             });
-            overlay.add(this.gui, 'r2_max', 0, 2).step(0.01).onChange(v=>{
+            overlay.add(this.gui, 'r2_max', 0, 12).step(0.01).onChange(v=>{
                 this.update_color();
             });
             overlay.open();
@@ -217,11 +220,16 @@ new Vue({
             let rh_geometry = this.mesh.rh.geometry;
             let rh_color = rh_geometry.attributes.color;
             let rh_position = rh_geometry.attributes.position;
+//
+            let lh_white_geometry = this.mesh.lh.white_geometry;
+            let rh_white_geometry = this.mesh.rh.white_geometry;
+//
+//            set_color.call(this, rh_color, rh_position);
+//            set_color.call(this, lh_color, lh_position);
+            set_color.call(this, rh_color, rh_position, rh_white_geometry.attributes.position);
+            set_color.call(this, lh_color, lh_position, lh_white_geometry.attributes.position);
 
-            set_color.call(this, rh_color, rh_position);
-            set_color.call(this, lh_color, lh_position);
-
-            function set_color(color, position) {
+            function set_color(color, position, white_position) {
 
                 color.needsUpdate = true;
 
@@ -232,15 +240,26 @@ new Vue({
                         continue;
                     }
                     //get vertex coord
-                    let x = position.getX(i);
-                    let y = position.getY(i);
-                    let z = position.getZ(i);
-                    
+                    let x_b = position.getX(i);
+                    let y_b = position.getY(i);
+                    let z_b = position.getZ(i);
+
+                    let x_w = white_position.getX(i);
+                    let y_w = white_position.getY(i);
+                    let z_w = white_position.getZ(i);
+
+                    let x = (x_w - x_b) * this.gui.cortical_depth + x_b
+                    let y = (y_w - y_b) * this.gui.cortical_depth + y_b
+                    let z = (z_w - z_b) * this.gui.cortical_depth + z_b
+
                     //convert it to voxel coords and get the value
                     let header = this.prf.r2.header;
-                    let vx = Math.round((x - header.qoffset_x) / -header.pixDims[1]); //TODO - flip X only if necessary
-                    let vy = Math.round((y - header.qoffset_y) / header.pixDims[2]);
-                    let vz = Math.round((z - header.qoffset_z) / header.pixDims[3]);
+                    let vx = Math.round(x*header.affine[0][0] + y*header.affine[0][1] + z*header.affine[0][2] + header.affine[0][3]);
+                    let vy = Math.round(x*header.affine[1][0] + y*header.affine[1][1] - z*header.affine[1][2] + header.affine[2][3]);
+                    let vz = Math.round(x*header.affine[2][0] - y*header.affine[2][1] + z*header.affine[2][2] + header.affine[1][3]*-1);
+                    //let vx = Math.round((x - header.qoffset_x) / -header.pixDims[1]); //TODO - flip X only if necessary
+                    //let vy = Math.round((y - header.qoffset_y) / header.pixDims[2]);
+                    //let vz = Math.round((z - header.qoffset_z) / header.pixDims[3]);
                     let r2_val = r2.get(vx, vy, vz);
 
                     if(isNaN(r2_val)) {
@@ -319,6 +338,10 @@ new Vue({
         create_mesh(material, base_geometry, white_geometry, inflated_geometry) {
             //first create a normal mesh
             var mesh = new THREE.Mesh( base_geometry, material );
+//
+            var white_mesh = new THREE.Mesh( white_geometry, material );
+            mesh.white_geometry = white_mesh.geometry;
+//
             mesh.rotation.x = -Math.PI/2;
             this.t.scene.add(mesh);
     
