@@ -1,3 +1,6 @@
+body, html {
+font-family: Roboto;
+}
 #three {
 position: fixed;
 background: radial-gradient( circle, transparent 30%, black 150%), rgb(46, 39, 39);
@@ -18,3 +21,30 @@ font-size: 25pt;
 opacity: 0.7;
 z-index: 1;
 }
+
+.logo {
+position: fixed;
+top: 5px;
+left: 5px;
+font-family: 'Open Sans';
+color: white;
+font-size: 25px;
+font-weight: bold;
+opacity: 0.2;
+}
+.controls-help {
+position: fixed;
+bottom: 5px;
+right: 5px;
+opacity: 0.6;
+color: white;
+}
+.controls-help span {
+font-size: 6pt;
+text-transform: uppercase;
+width: 30px;
+text-align: center;
+display: inline-block;
+margin-bottom: 5px;
+}
+

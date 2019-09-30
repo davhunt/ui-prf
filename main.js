@@ -3,15 +3,6 @@ function map_value(v, in_min, in_max, out_min, out_max) {
     return (v - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
-let config = window.config || window.parent.config;
-if(!config) {
-    //debug/demo config
-    config = {
-        urlbase: "testdata", //root of where I can find /surfaces and /roipairs and labels.json
-        jwt: null, //jwt to add to all urls
-    }
-}
-
 new Vue({
     el: '#app',
     data: function() {
@@ -55,13 +46,21 @@ new Vue({
             },
 
             loading: false,
-            config,
+            config: window.config || window.parent.config,
         }
     },
     template: `
     <div>
         <p class="loading" v-if="loading">Loading... <span style="opacity: 0.5; font-size: 80%">{{loading}}</span></p>
         <div id="three" ref="three" @mousemove="mousemove" @mousedown="mousedown" @mouseup="mouseup"/>
+        <div class="logo">brainlife.io</div>
+        <div class="controls-help">
+            <span>Rotate</span>
+            <span>Zoom</span>
+            <span>Pan</span>
+            <br>
+            <img src="controls.png" height="50px"/>
+        </div>
     </div>
     `,
     

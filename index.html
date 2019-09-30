@@ -19,14 +19,16 @@
 	<script src="node_modules/panning-orbit-controls/dist/panning-orbit-controls.js"></script>
     <script src="node_modules/dat.gui/build/dat.gui.min.js"></script>
 	<script src="node_modules/nifti-reader-js/release/current/nifti-reader-min.js"></script>
-    <!--
-    <script type="text/javascript" src="node_modules/stats.js/build/stats.min.js"></script>
-    <script type="text/javascript" src="node_modules/three-mesh-bvh/umd/index.js"></script>
-    -->
-
-    <!--<script type="text/javascript" src="lib/dist.bundled.js"></script>-->
+    <script>
+    if(!window.config && window.parent.config) {
+        //debug/demo config
+        window.config = {
+            urlbase: "testdata", //root of where I can find /surfaces and /roipairs and labels.json
+            jwt: null, //jwt to add to all urls
+        }
+    }
+    </script>
     <script src="main.js" type="module"></script>
-
     <div id="app"/>
 </body>
 
