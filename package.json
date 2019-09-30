@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "lite-server",
-    "bundle": "browserify bundle.js -o bundled.js"
+    "deploy-prod": "rsync -av . brainlife.io:/usr/local/static/ui-prf"
   },
   "author": "",
   "license": "ISC",

@@ -48,3 +48,22 @@ display: inline-block;
 margin-bottom: 5px;
 }
 
+.color-legend {
+width: 256px;
+position: fixed;
+bottom: 0px;
+left: 0px;
+color: white;
+font-size: 8pt;
+}
+.color-legend .color {
+width: 1px;
+height: 10px;
+display: inline-block;
+}
+.color-legend .min {
+float: left;
+}
+.color-legend .max {
+float: right;
+}
