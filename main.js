@@ -54,9 +54,10 @@ new Vue({
             gui: {
                 ui: new dat.GUI(),
 
-                overlay: 'r2*polar_angle',
+                //overlay: 'r2*polar_angle',
+                overlay: 'r2',
                 r2_min: 0.1,                  
-                r2_max: 1,                  
+                r2_max: 12,                  
 
                 cortical_depth: 0.5,
                 inflate: 0.5,
@@ -184,7 +185,7 @@ new Vue({
             overlay.add(this.gui, 'r2_min', 0, 0.5).step(0.01).onChange(v=>{
                 this.update_color();
             });
-            overlay.add(this.gui, 'r2_max', 0, 2).step(0.01).onChange(v=>{
+            overlay.add(this.gui, 'r2_max', 0, 12).step(0.01).onChange(v=>{
                 this.update_color();
             });
             overlay.open();
@@ -274,7 +275,7 @@ new Vue({
             function set_color(color, position) {
 
                 color.needsUpdate = true;
-                console.dir(this.prf.r2.header);
+                //console.dir(this.prf.r2.header);
 
                 for(var i = 0;i < color.count;++i) { 
                     if(!r2) {
@@ -290,23 +291,29 @@ new Vue({
                     //convert it to voxel coords and get the value
                     let header = this.prf.r2.header;
                     let vx = Math.round((x - header.qoffset_x) / -header.pixDims[1]); //TODO - flip X only if necessary
-                    let vy = Math.round((y - header.qoffset_y) / header.pixDims[2]);
-                    let vz = Math.round((z - header.qoffset_z) / header.pixDims[3]);
+                    let vy = Math.round((y - header.qoffset_y) / header.pixDims[2]) + 1;
+                    let vz = Math.round((z - header.qoffset_z) / header.pixDims[3]) + 1;
                     let r2_val = r2.get(vx, vy, vz);
-                    //if(i%10000 == 0) console.log(x - header.qoffset_x, y - header.qoffset_y, z - header.qoffset_z, r2_val);
 
                     if(isNaN(r2_val)) {
                         color.setXYZ(i, 50, 50, 50); 
                         continue;
                     }
                     //TODO - the way r2/min/max is applied is wrong
-                    r2_val = map_value(r2_val, this.prf.r2.stats.min - this.gui.r2_min, this.gui.r2_max/this.prf.r2.stats.max, 0, 1);
+                    /*
+                    r2_val = map_value(r2_val, 
+                        this.prf.r2.stats.min - this.gui.r2_min, 
+                        this.gui.r2_max/this.prf.r2.stats.max, 
+                        0, 1);
+                    */
+                    r2_val = map_value(r2_val, vmin, vmax, this.gui.r2_min, 1);
+                    if(i % 1000 == 0) console.log(r2_val, v);
 
                     let h, s, l;
                     if(v) {
                         let v_val = v.get(vx, vy, vz);      
                         if(isNaN(v_val)) {
-                            color.setXYZ(i, 50, 50, 50); 
+                            color.setXYZ(i, 50, 50, 150); 
                             continue;
                         }
                         h = map_value(v_val, vmin, vmax, 0, 240); //red to blue
@@ -317,8 +324,10 @@ new Vue({
                         h = map_value(r2_val, 0, 1, 0, 60); //red to yellow
                         s = 1;
                         l = r2_val;
+
+                        //handle r2_val overflow..
                         if(h > 60) {
-                            l += h/60;
+                            //l += h/60;
                             h = 60; 
                         }
                     }
