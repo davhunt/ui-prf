@@ -85,7 +85,7 @@ new Vue({
     template: `
     <div>
         <p class="loading" v-if="loading">Loading... <span style="opacity: 0.5; font-size: 80%">{{loading}}</span></p>
-        <div id="three" ref="three" @mousemove="mousemove" @mousedown="mousedown" @mouseup="mouseup"/>
+        <div id="three" ref="three"/>
         <div class="logo">brainlife.io</div>
         <div class="controls-help">
             <span>Rotate</span>
@@ -94,7 +94,7 @@ new Vue({
             <br>
             <img src="controls.png" height="50px"/>
         </div>
-        <div class="color-legend">
+        <div class="color-legend" v-if="legend.colors.length > 0">
             <div class="color" v-for="color in legend.colors" :style="{'background-color': 'rgb('+color.r+','+color.g+', '+color.b+')'}"/>
             <br>
             <span class="min">{{legend.min.toFixed(2)}}</span>
@@ -197,12 +197,14 @@ new Vue({
             this.t.renderer.setSize(viewbox.width, viewbox.height);
         },
 
+        /*
         mousemove(event) {
         },
         mouseup(event) {
         },
         mousedown(event) {
         },
+        */
 
         update_position() {
             this.mesh.lh.position.x = -this.gui.split;
@@ -272,6 +274,7 @@ new Vue({
             function set_color(color, position) {
 
                 color.needsUpdate = true;
+                console.dir(this.prf.r2.header);
 
                 for(var i = 0;i < color.count;++i) { 
                     if(!r2) {
@@ -290,6 +293,7 @@ new Vue({
                     let vy = Math.round((y - header.qoffset_y) / header.pixDims[2]);
                     let vz = Math.round((z - header.qoffset_z) / header.pixDims[3]);
                     let r2_val = r2.get(vx, vy, vz);
+                    //if(i%10000 == 0) console.log(x - header.qoffset_x, y - header.qoffset_y, z - header.qoffset_z, r2_val);
 
                     if(isNaN(r2_val)) {
                         color.setXYZ(i, 50, 50, 50); 

@@ -30,7 +30,7 @@ font-family: 'Open Sans';
 color: white;
 font-size: 25px;
 font-weight: bold;
-opacity: 0.2;
+opacity: 0.1;
 }
 .controls-help {
 position: fixed;
@@ -51,8 +51,8 @@ margin-bottom: 5px;
 .color-legend {
 width: 256px;
 position: fixed;
-bottom: 0px;
-left: 0px;
+bottom: 5px;
+left: 5px;
 color: white;
 font-size: 8pt;
 }
