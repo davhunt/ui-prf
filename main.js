@@ -2,7 +2,6 @@
 function map_value(v, in_min, in_max, out_min, out_max) {
     return (v - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
-//
 
 // Returns the inverse of matrix `M`.
 function matrix_invert(M){
@@ -99,14 +98,32 @@ function matrix_invert(M){
 }
 //
 
-
-let config = window.config || window.parent.config;
-if(!config) {
-    //debug/demo config
-    config = {
-        urlbase: "testdata", //root of where I can find /surfaces and /roipairs and labels.json
-        jwt: null, //jwt to add to all urls
+function hsl_to_rgb(h, s, l) {
+    //convert hsl to rgb
+    let c = (1 - Math.abs(2 * l - 1)) * s;
+    let x1 = c * (1 - Math.abs((h / 60) % 2 - 1));
+    let m = l - c/2;
+    let r = 0;
+    let g = 0;
+    let b = 0;
+    if (0 <= h && h < 60) {
+        r = c; g = x1; b = 0;
+    } else if (60 <= h && h < 120) {
+        r = x1; g = c; b = 0;
+    } else if (120 <= h && h < 180) {
+        r = 0; g = c; b = x1;
+    } else if (180 <= h && h < 240) {
+        r = 0; g = x1; b = c;
+    } else if (240 <= h && h < 300) {
+        r = x1; g = 0; b = c;
+    } else if (300 <= h && h < 360) {
+        r = c; g = 0; b = x1;
     }
+    r = Math.round((r + m) * 255);
+    g = Math.round((g + m) * 255);
+    b = Math.round((b + m) * 255);
+    //color.setXYZ(i, r, g, b);
+    return {r,g,b};
 }
 
 new Vue({
@@ -133,15 +150,22 @@ new Vue({
             gui: {
                 ui: new dat.GUI(),
 
-                overlay: 'none',
+                //overlay: 'r2*polar_angle',
+                overlay: 'r2',
                 r2_min: 0.1,                  
-                r2_max: 1,                  
+                r2_max: 12,                  
 
                 cortical_depth: 0.5,
-                inflate: 0,
+                inflate: 0.5,
 
-                split: 50,
+                split: 0, //50
                 open: Math.PI/4,
+            },
+
+            legend: {
+                min: 0,
+                max: 1,
+                colors: [],
             },
 
             prf: {
@@ -152,13 +176,27 @@ new Vue({
             },
 
             loading: false,
-            config,
+            config: window.config || window.parent.config,
         }
     },
     template: `
     <div>
         <p class="loading" v-if="loading">Loading... <span style="opacity: 0.5; font-size: 80%">{{loading}}</span></p>
-        <div id="three" ref="three" @mousemove="mousemove" @mousedown="mousedown" @mouseup="mouseup"/>
+        <div id="three" ref="three"/>
+        <div class="logo">brainlife.io</div>
+        <div class="controls-help">
+            <span>Rotate</span>
+            <span>Zoom</span>
+            <span>Pan</span>
+            <br>
+            <img src="controls.png" height="50px"/>
+        </div>
+        <div class="color-legend" v-if="legend.colors.length > 0">
+            <div class="color" v-for="color in legend.colors" :style="{'background-color': 'rgb('+color.r+','+color.g+', '+color.b+')'}"/>
+            <br>
+            <span class="min">{{legend.min.toFixed(2)}}</span>
+            <span class="max">{{legend.max.toFixed(2)}}</span>
+        </div>
     </div>
     `,
     
@@ -256,12 +294,14 @@ new Vue({
             this.t.renderer.setSize(viewbox.width, viewbox.height);
         },
 
+        /*
         mousemove(event) {
         },
         mouseup(event) {
         },
         mousedown(event) {
         },
+        */
 
         update_position() {
             this.mesh.lh.position.x = -this.gui.split;
@@ -304,8 +344,6 @@ new Vue({
                 vmax = v.stats.max;
                 break;
             }
-            //console.log(this.gui.overlay);
-            //console.dir(v);
 
             let lh_geometry = this.mesh.lh.geometry;
             let lh_color = lh_geometry.attributes.color;
@@ -323,9 +361,27 @@ new Vue({
             set_color.call(this, rh_color, rh_position, rh_white_geometry.attributes.position);
             set_color.call(this, lh_color, lh_position, lh_white_geometry.attributes.position);
 
+
             function set_color(color, position, white_position) {
 
+                set_color.call(this, rh_color, rh_position);
+                set_color.call(this, lh_color, lh_position);
+
+                this.legend.min = vmin;
+                this.legend.max = vmax;
+                this.legend.colors = [];
+                for(let i = 0;i < 256;++i) {
+                    let h;
+                    if(this.gui.overlay == "r2") h = map_value(i, 0, 256, 0, 60); //red to yellow (r2 only)
+                    else h = map_value(i, 0, 256, 0, 240); //red to blue
+                    let s = 1;
+                    let l = 0.5;
+                    this.legend.colors.push(hsl_to_rgb(h, s, l));
+                }
+
+
                 color.needsUpdate = true;
+                //console.dir(this.prf.r2.header);
 
                 for(var i = 0;i < color.count;++i) { 
                     if(!r2) {
@@ -352,9 +408,7 @@ new Vue({
                     let vx = Math.round(x*affine[0][0] + y*affine[0][1] + z*affine[0][2] + affine[0][3]);
                     let vy = Math.round(x*affine[1][0] + y*affine[1][1] + z*affine[1][2] + affine[1][3]);
                     let vz = Math.round(x*affine[2][0] + y*affine[2][1] + z*affine[2][2] + affine[2][3]);
-                    //let vx = Math.round((x - header.qoffset_x) / -header.pixDims[1]); //TODO - flip X only if necessary
-                    //let vy = Math.round((y - header.qoffset_y) / header.pixDims[2]);
-                    //let vz = Math.round((z - header.qoffset_z) / header.pixDims[3]);
+
                     let r2_val = r2.get(vx, vy, vz);
 
                     if(isNaN(r2_val)) {
@@ -367,13 +421,20 @@ new Vue({
                     //}
 //
                     //TODO - the way r2/min/max is applied is wrong
-                    r2_val = map_value(r2_val, this.prf.r2.stats.min - this.gui.r2_min, this.gui.r2_max/this.prf.r2.stats.max, 0, 1);
+                    /*
+                    r2_val = map_value(r2_val, 
+                        this.prf.r2.stats.min - this.gui.r2_min, 
+                        this.gui.r2_max/this.prf.r2.stats.max, 
+                        0, 1);
+                    */
+                    r2_val = map_value(r2_val, vmin, vmax, this.gui.r2_min, 1);
+                    if(i % 1000 == 0) console.log(r2_val, v);
 
                     let h, s, l;
                     if(v) {
                         let v_val = v.get(vx, vy, vz);      
                         if(isNaN(v_val)) {
-                            color.setXYZ(i, 50, 50, 50); 
+                            color.setXYZ(i, 50, 50, 150); 
                             continue;
                         }
                         h = map_value(v_val, vmin, vmax, 0, 240); //red to blue
@@ -385,35 +446,15 @@ new Vue({
                         //h = map_value(r2_val, 0, 1, 0, 60); //red to yellow
                         s = 1;
                         l = r2_val;
+
+                        //handle r2_val overflow..
                         if(h > 60) {
-                            l += h/60;
+                            //l += h/60;
                             h = 60; 
                         }
                     }
                     
-                    //convert hsl to rgb
-                    let c = (1 - Math.abs(2 * l - 1)) * s;
-                    let x1 = c * (1 - Math.abs((h / 60) % 2 - 1));
-                    let m = l - c/2;
-                    let r = 0;
-                    let g = 0;
-                    let b = 0;
-                    if (0 <= h && h < 60) {
-                        r = c; g = x1; b = 0;
-                    } else if (60 <= h && h < 120) {
-                        r = x1; g = c; b = 0;
-                    } else if (120 <= h && h < 180) {
-                        r = 0; g = c; b = x1;
-                    } else if (180 <= h && h < 240) {
-                        r = 0; g = x1; b = c;
-                    } else if (240 <= h && h < 300) {
-                        r = x1; g = 0; b = c;
-                    } else if (300 <= h && h < 360) {
-                        r = c; g = 0; b = x1;
-                    }
-                    r = Math.round((r + m) * 255);
-                    g = Math.round((g + m) * 255);
-                    b = Math.round((b + m) * 255);
+                    let {r,g,b} = hsl_to_rgb(h, s, l);
                     color.setXYZ(i, r, g, b);
                 }
             }
@@ -593,7 +634,6 @@ new Vue({
                         //find min/max
                         let min = null;
                         let max = null;
-                        debugger;
                         image.forEach(v=>{
                             if (!isNaN(v)) {
                                 if (min == null) min = v;
