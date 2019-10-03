@@ -381,7 +381,7 @@ new Vue({
                         l = r2_val;
                     } else {
                         //r2 only
-                        h = map_value(r2_val, 0, 1, 0, 10; //red to yellow
+                        h = map_value(r2_val, 0, 1, 0, 5); //red to yellow
                         //h = map_value(r2_val, 0, 1, 0, 60); //red to yellow
                         s = 1;
                         l = r2_val;
