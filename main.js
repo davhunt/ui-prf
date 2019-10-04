@@ -364,9 +364,6 @@ new Vue({
 
             function set_color(color, position, white_position) {
 
-                //set_color.call(this, rh_color, rh_position);
-                //set_color.call(this, lh_color, lh_position);
-
                 this.legend.min = vmin;
                 this.legend.max = vmax;
                 this.legend.colors = [];
@@ -409,35 +406,25 @@ new Vue({
                     let vz = Math.round(x*affine[2][0] + y*affine[2][1] + z*affine[2][2] + affine[2][3]);
 
                     let r2_val = r2.get(vx, vy, vz);
+                    r2_val += this.gui.r2_offset;
+                    r2_val = map_value(r2_val, 0, 12, 0.3, 1);
 
                     if(isNaN(r2_val)) {
                         color.setXYZ(i, 50, 50, 50); 
                         continue;
                     }
-//
-                    //if( r2_val > 3 ) {
-                    //    r2_val = 0
-                    //}
-//
-                    //TODO - the way r2/min/max is applied is wrong
-                    /*
-                    r2_val = map_value(r2_val, 
-                        this.prf.r2.stats.min - this.gui.r2_min, 
-                        this.gui.r2_max/this.prf.r2.stats.max, 
-                        0, 1);
-                    */
-                    r2_val += this.gui.r2_offset;
 
                     let h, s, l;
                     if(v) {
                         let v_val = v.get(vx, vy, vz);      
                         if(isNaN(v_val)) {
-                            color.setXYZ(i, 50, 50, 150); 
+                            color.setXYZ(i, 50, 50, 100); 
                             continue;
                         }
                         h = map_value(v_val, vmin, vmax, 0, 240); //red to blue
                         s = 1;
                         l = r2_val;
+                        if(v_val == 0) s = 0.1;
                     } else {
                         //r2 only
                         h = map_value(r2_val, 0, 1, 0, 60); //red to yellow
@@ -446,7 +433,6 @@ new Vue({
 
                         //handle r2_val overflow..
                         if(h > 60) {
-                            //l += h/60;
                             h = 60; 
                         }
                     }
