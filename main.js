@@ -150,10 +150,9 @@ new Vue({
             gui: {
                 ui: new dat.GUI(),
 
-                //overlay: 'r2*polar_angle',
-                overlay: 'r2',
-                r2_min: 0.1,                  
-                r2_max: 12,                  
+                overlay: 'r2*polar_angle',
+                //overlay: 'r2',
+                r2_offset: 0,                  
 
                 cortical_depth: 0.5,
                 inflate: 0.5,
@@ -275,15 +274,19 @@ new Vue({
             
             var overlay = this.gui.ui.addFolder('Overlay');
             overlay.add(this.gui, 'overlay', [ 'none', 'r2', 'r2*polar_angle', 'r2*rf_width', 'r2*eccentricity' ]).onChange(v=>{
-                //console.log(v);
                 this.update_color();
             });
+            overlay.add(this.gui, 'r2_offset', 0, 10).step(0.01).onChange(v=>{
+                this.update_color();
+            });
+            /*
             overlay.add(this.gui, 'r2_min', 0, 0.5).step(0.01).onChange(v=>{
                 this.update_color();
             });
             overlay.add(this.gui, 'r2_max', 0, 12).step(0.01).onChange(v=>{
                 this.update_color();
             });
+            */
             overlay.open();
         },
 
@@ -328,8 +331,8 @@ new Vue({
             case "r2*polar_angle":
                 r2 = this.prf.r2;
                 v = this.prf.p_angle;
-                vmin = -3.14;
-                vmax = 3.14;
+                vmin = v.stats.min;
+                vmax = v.stats.max;
                 break;
             case "r2*rf_width":
                 r2 = this.prf.r2;
@@ -352,20 +355,17 @@ new Vue({
             let rh_geometry = this.mesh.rh.geometry;
             let rh_color = rh_geometry.attributes.color;
             let rh_position = rh_geometry.attributes.position;
-//
+
             let lh_white_geometry = this.mesh.lh.white_geometry;
             let rh_white_geometry = this.mesh.rh.white_geometry;
-//
-//            set_color.call(this, rh_color, rh_position);
-//            set_color.call(this, lh_color, lh_position);
+
             set_color.call(this, rh_color, rh_position, rh_white_geometry.attributes.position);
             set_color.call(this, lh_color, lh_position, lh_white_geometry.attributes.position);
 
-
             function set_color(color, position, white_position) {
 
-                set_color.call(this, rh_color, rh_position);
-                set_color.call(this, lh_color, lh_position);
+                //set_color.call(this, rh_color, rh_position);
+                //set_color.call(this, lh_color, lh_position);
 
                 this.legend.min = vmin;
                 this.legend.max = vmax;
@@ -378,7 +378,6 @@ new Vue({
                     let l = 0.5;
                     this.legend.colors.push(hsl_to_rgb(h, s, l));
                 }
-
 
                 color.needsUpdate = true;
                 //console.dir(this.prf.r2.header);
@@ -427,8 +426,7 @@ new Vue({
                         this.gui.r2_max/this.prf.r2.stats.max, 
                         0, 1);
                     */
-                    r2_val = map_value(r2_val, vmin, vmax, this.gui.r2_min, 1);
-                    if(i % 1000 == 0) console.log(r2_val, v);
+                    r2_val += this.gui.r2_offset;
 
                     let h, s, l;
                     if(v) {
@@ -442,8 +440,7 @@ new Vue({
                         l = r2_val;
                     } else {
                         //r2 only
-                        h = map_value(r2_val, 0, 1, 0, 60; //red to yellow
-                        //h = map_value(r2_val, 0, 1, 0, 60); //red to yellow
+                        h = map_value(r2_val, 0, 1, 0, 60); //red to yellow
                         s = 1;
                         l = r2_val;
 
@@ -521,7 +518,9 @@ new Vue({
             let promises = vtks.map(vtk=>{
                 this.loading = "surfaces";
                 return new Promise((resolve, reject)=>{
-                    vtkloader.load(vtk, resolve);
+                    vtkloader.load(vtk, resolve, p=>{
+                        this.loading = vtk+" "+(p.loaded/p.total*100).toFixed(1)+"%";
+                    });
                 });
             });
 
