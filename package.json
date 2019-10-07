@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "lite-server",
-    "deploy-prod": "rsync -av . brainlife.io:/usr/local/static/ui-prf"
+    "deploy-prod": "rsync -av . brainlife.io:/usr/local/static/ui-prf-k"
   },
   "author": "",
   "license": "ISC",

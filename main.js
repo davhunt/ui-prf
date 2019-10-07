@@ -172,6 +172,7 @@ new Vue({
                 p_angle: null,
                 rf_width: null,
                 ecc: null,
+                varea: null,  //optional
             },
 
             loading: false,
@@ -273,7 +274,13 @@ new Vue({
             ui.open();
             
             var overlay = this.gui.ui.addFolder('Overlay');
-            overlay.add(this.gui, 'overlay', [ 'none', 'r2', 'r2*polar_angle', 'r2*rf_width', 'r2*eccentricity' ]).onChange(v=>{
+            overlay.add(this.gui, 'overlay', [ 
+                'r2', 
+                'r2*polar_angle', 
+                'r2*rf_width', 
+                'r2*eccentricity', 
+                'r2*varea',  //optional
+            ]).onChange(v=>{
                 this.update_color();
             });
             overlay.add(this.gui, 'r2_offset', 0, 10).step(0.01).onChange(v=>{
@@ -320,32 +327,39 @@ new Vue({
             if(!this.prf.r2) return;
 
             //console.log("update_color");
-            let r2, v;
-            let vmin, vmax;
+            let r2 = this.prf.rw;
+            let v, vmin, vmax;
             switch(this.gui.overlay) {
             case "r2":
                 r2 = this.prf.r2;
-                vmin = r2.stats.min;
-                vmax = r2.stats.max;
                 break;
             case "r2*polar_angle":
                 r2 = this.prf.r2;
                 v = this.prf.p_angle;
-                vmin = v.stats.min;
-                vmax = v.stats.max;
                 break;
             case "r2*rf_width":
                 r2 = this.prf.r2;
                 v = this.prf.rf_width;
-                vmin = v.stats.min;
-                vmax = v.stats.max;
                 break;
             case "r2*eccentricity":
                 r2 = this.prf.r2;
                 v = this.prf.ecc;
+                break;
+            case "r2*varea":
+                r2 = this.prf.r2;
+                v = this.prf.varea;
+                if(!v) {
+                    alert("No data for this overlay");
+                    return;
+                }
+                break;
+            }
+            if(v) {
                 vmin = v.stats.min;
                 vmax = v.stats.max;
-                break;
+            } else {
+                vmin = r2.stats.min;
+                vmax = r2.stats.max;
             }
 
             let lh_geometry = this.mesh.lh.geometry;
@@ -368,11 +382,17 @@ new Vue({
                 this.legend.max = vmax;
                 this.legend.colors = [];
                 for(let i = 0;i < 256;++i) {
-                    let h;
-                    if(this.gui.overlay == "r2") h = map_value(i, 0, 256, 0, 60); //red to yellow (r2 only)
-                    else h = map_value(i, 0, 256, 0, 240); //red to blue
-                    let s = 1;
-                    let l = 0.5;
+                    let h,s,l;
+                    if(this.gui.overlay == "r2") {
+                        //r2 is shown as just gray
+                        h = 0;
+                        s = 0;
+                        l = map_value(i, 0, 256, 0, 1);
+                    } else {
+                        h = map_value(i, 0, 256, 0, 240); //red to blue
+                        s = 1;
+                        l = 0.5;
+                    }
                     this.legend.colors.push(hsl_to_rgb(h, s, l));
                 }
 
@@ -405,43 +425,36 @@ new Vue({
                     let vy = Math.round(x*affine[1][0] + y*affine[1][1] + z*affine[1][2] + affine[1][3]);
                     let vz = Math.round(x*affine[2][0] + y*affine[2][1] + z*affine[2][2] + affine[2][3]);
 
-                    let r2_val = r2.get(vx, vy, vz);
-                    r2_val += this.gui.r2_offset;
-                    r2_val = map_value(r2_val, 0, 12, 0.3, 1);
+                    let r2_val = r2.get(vx, vy, vz) + this.gui.r2_offset;
 
+                    /*
                     if(isNaN(r2_val)) {
                         color.setXYZ(i, 50, 50, 50); 
                         continue;
                     }
+                    */
 
                     let h, s, l;
+                    l = map_value(r2_val, r2.stats.min, r2.stats.max, 0, 0.8);
                     if(v) {
                         let v_val = v.get(vx, vy, vz);      
-                        if(isNaN(v_val)) {
+                        if(isNaN(v_val) || v_val == 0) {
                             color.setXYZ(i, 50, 50, 100); 
                             continue;
                         }
                         h = map_value(v_val, vmin, vmax, 0, 240); //red to blue
                         s = 1;
-                        l = r2_val;
-                        if(v_val == 0) s = 0.1;
+                        //if(i % 10000 == 0) console.log(v_val, r2_val, vx, vy, vz, h);
                     } else {
                         //r2 only
-                        h = map_value(r2_val, 0, 1, 0, 60); //red to yellow
-                        s = 1;
-                        l = r2_val;
-
-                        //handle r2_val overflow..
-                        if(h > 60) {
-                            h = 60; 
-                        }
+                        h = 0;
+                        s = 0; //gray!
                     }
                     
                     let {r,g,b} = hsl_to_rgb(h, s, l);
                     color.setXYZ(i, r, g, b);
                 }
             }
-
         },
 
         animate() {
@@ -533,48 +546,22 @@ new Vue({
                     load_nifti.call(this, "testdata/prf/r2.nii.gz"), 
                     load_nifti.call(this, "testdata/prf/polarAngle.nii.gz"), 
                     load_nifti.call(this, "testdata/prf/rfWidth.nii.gz"), 
-                    load_nifti.call(this, "testdata/prf/eccentricity.nii.gz")
+                    load_nifti.call(this, "testdata/prf/eccentricity.nii.gz"),
+                    load_nifti.call(this, "testdata/prf/varea.nii.gz"),  //optional
                 ]).then(outs=>{
-                    console.log("loaded all nii.gz");
+                    console.log("loaded all volumes");
+                    console.dir(outs);
+
                     this.prf.r2 = outs[0];
                     this.prf.p_angle = outs[1];
                     this.prf.rf_width = outs[2];
                     this.prf.ecc = outs[3];
+                    this.prf.varea = outs[4];
                     this.update_color();
                     this.loading = false;
                 });
-
             });
             
-            /* I am not sure what I can use this for..
-            vtkloader.load("testdata/ctx-lh-lateraloccipital.vtk", geometry => {
-                geometry.computeVertexNormals(); //for smooth shading
-                let material = new THREE.MeshLambertMaterial({
-                    color: new THREE.Color(0.2,0.5,1),
-                    //shininess: 80,
-                });
-                var mesh = new THREE.Mesh( geometry, material );
-                mesh.rotation.x = -Math.PI/2;
-                this.t.scene.add(mesh);
-
-                //randomize positions
-                let position = mesh.geometry.attributes.position.clone();
-                for ( var j = 0, jl = position.count; j < jl; j ++ ) {
-                  position.setXYZ(j,
-                    position.getX( j ) * 2 * Math.random(),
-                    position.getY( j ) * 2 * Math.random(),
-                    position.getZ( j ) * 2 * Math.random()
-                  );
-                }
-
-                //set as morph target
-                let mattr = mesh.geometry.morphAttributes;
-                mattr.position = [position];
-                mesh.updateMorphTargets();
-                mesh.morphTargetInfluences[0] = 0.05;
-            });
-            */
-
             function load_nifti(path) {
                 return new Promise((resolve, reject)=>{
                     this.loading = path;
@@ -627,8 +614,12 @@ new Vue({
                                 else max = v > max ? v : max;
                             }
                         });
-                        console.dir({min, max})
+                        //console.dir({min, max})
                         resolve({header, image, stats: {min, max}, get});
+                    }).catch(err=>{
+                        console.log("failed to load nifti:"+path);
+                        console.dir(err);
+                        resolve(null); 
                     });
                 });
             }
