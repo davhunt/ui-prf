@@ -435,7 +435,7 @@ new Vue({
                     */
 
                     let h, s, l;
-                    l = map_value(r2_val, r2.stats.min, r2.stats.max, 0, 0.8);
+                    l = map_value(r2_val, r2.stats.min, r2.stats.max, 0, 0.5);
                     if(v) {
                         let v_val = v.get(vx, vy, vz);      
                         if(isNaN(v_val) || v_val == 0) {
