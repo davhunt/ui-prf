@@ -506,18 +506,19 @@ new Vue({
         load() {
             let vtkloader = new THREE.VTKLoader();
             let vtks = [ 
-                "testdata/lh.pial.vtk",
-                "testdata/lh.white.vtk",
-                "testdata/lh.inflated.vtk",
-
-                "testdata/rh.pial.vtk",
-                "testdata/rh.white.vtk",
-                "testdata/rh.inflated.vtk",
+                "lh.pial.vtk",
+                "lh.white.vtk",
+                "lh.inflated.vtk",
+                "rh.pial.vtk",
+                "rh.white.vtk",
+                "rh.inflated.vtk",
             ];
             let promises = vtks.map(vtk=>{
                 this.loading = "surfaces";
                 return new Promise((resolve, reject)=>{
-                    vtkloader.load(vtk, resolve, p=>{
+		    let url = this.config.urlbase+"/surfaces/"+vtk;
+		    if(this.config.jwt) url += "?at="+this.config.jwt;
+                    vtkloader.load(url, resolve, p=>{
                         this.loading = vtk+" "+(p.loaded/p.total*100).toFixed(1)+"%";
                     });
                 });
@@ -542,13 +543,14 @@ new Vue({
                 this.update_position();
 
                 this.loading = "pRF volumes";
-                Promise.all([ 
-                    load_nifti.call(this, "testdata/prf/r2.nii.gz"), 
-                    load_nifti.call(this, "testdata/prf/polarAngle.nii.gz"), 
-                    load_nifti.call(this, "testdata/prf/rfWidth.nii.gz"), 
-                    load_nifti.call(this, "testdata/prf/eccentricity.nii.gz"),
-                    load_nifti.call(this, "testdata/prf/varea.nii.gz"),  //optional
-                ]).then(outs=>{
+		let promises = [];
+	    	let nifties = ["r2.nii.gz", "polarAngle.nii.gz", "rfWidth.nii.gz", "eccentricity.nii.gz", "varea.nii.gz"];
+		nifties.forEach(n=>{
+		    let url = this.config.urlbase+"/"+n;
+		    if(this.config.jwt) url += "?at="+this.config.jwt;
+		    promises.push(load_nifti.call(this, url));
+		});
+                Promise.all(promises).then(outs=>{
                     console.log("loaded all volumes");
                     console.dir(outs);
 

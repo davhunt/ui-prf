@@ -19,8 +19,8 @@
     <script src="node_modules/dat.gui/build/dat.gui.min.js"></script>
     <script src="node_modules/nifti-reader-js/release/current/nifti-reader-min.js"></script>
     <script>
-    if(!window.config && window.parent.config) {
-        //debug/demo config
+    if(!window.config && !window.parent.config) {
+        console.log("using debug/demo config");
         window.config = {
             urlbase: "testdata", //root of where I can find /surfaces and /roipairs and labels.json
             jwt: null, //jwt to add to all urls
