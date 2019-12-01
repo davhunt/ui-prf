@@ -151,6 +151,7 @@ new Vue({
                 ui: new dat.GUI(),
 
                 overlay: 'r2*polar_angle',
+                overlay_type: 'volume',
                 //overlay: 'r2',
                 r2_offset: 0,                  
 
@@ -167,13 +168,40 @@ new Vue({
                 colors: [],
             },
 
-            prf: {
-                r2: null,
-                p_angle: null,
-                rf_width: null,
-                ecc: null,
-                varea: null,  //optional
-            },
+            // prf: {
+            //     r2: null,
+            //     p_angle: null,
+            //     rf_width: null,
+            //     ecc: null,
+            //     varea: null,  //optional
+            // },
+
+           prf: {
+               vol: {
+                   r2: null,
+                   p_angle: null,
+                   rf_width: null,
+                   ecc: null,
+                   varea: null,  //optional
+               },
+               surf: { //optional
+                   lh: {
+                       r2: null,
+                       p_angle: null,
+                       rf_width: null,
+                       ecc: null,
+                       varea: null,  //optional
+                   },
+                   rh: {
+                       r2: null,
+                       p_angle: null,
+                       rf_width: null,
+                       ecc: null,
+                       varea: null, //optional
+                   },
+               },
+           },
+
 
             loading: false,
             config: window.config || window.parent.config,
@@ -230,7 +258,7 @@ new Vue({
         this.t.controls = new THREE.OrbitControls(this.t.camera, this.t.renderer.domElement);
         this.t.controls.autoRotate = true;
         this.t.controls.addEventListener('start', ()=>{
-            //stop roration when user interacts
+            //stop rotation when user interacts
             this.t.controls.autoRotate = false;
         });
 
@@ -283,6 +311,14 @@ new Vue({
             ]).onChange(v=>{
                 this.update_color();
             });
+
+            overlay.add(this.gui, 'overlay_type', [
+                'volume',
+                'surface',
+            ]).onChange(v=>{
+                this.update_color();
+            });
+
             overlay.add(this.gui, 'r2_offset', 0, 10).step(0.01).onChange(v=>{
                 this.update_color();
             });
@@ -324,43 +360,7 @@ new Vue({
             //make sure we have everything we need
             if(!this.mesh.lh) return;
             if(!this.mesh.rh) return;
-            if(!this.prf.r2) return;
-
-            //console.log("update_color");
-            let r2 = this.prf.rw;
-            let v, vmin, vmax;
-            switch(this.gui.overlay) {
-            case "r2":
-                r2 = this.prf.r2;
-                break;
-            case "r2*polar_angle":
-                r2 = this.prf.r2;
-                v = this.prf.p_angle;
-                break;
-            case "r2*rf_width":
-                r2 = this.prf.r2;
-                v = this.prf.rf_width;
-                break;
-            case "r2*eccentricity":
-                r2 = this.prf.r2;
-                v = this.prf.ecc;
-                break;
-            case "r2*varea":
-                r2 = this.prf.r2;
-                v = this.prf.varea;
-                if(!v) {
-                    alert("No data for this overlay");
-                    return;
-                }
-                break;
-            }
-            if(v) {
-                vmin = v.stats.min;
-                vmax = v.stats.max;
-            } else {
-                vmin = r2.stats.min;
-                vmax = r2.stats.max;
-            }
+            if(!this.prf.vol.r2) return;
 
             let lh_geometry = this.mesh.lh.geometry;
             let lh_color = lh_geometry.attributes.color;
@@ -372,14 +372,137 @@ new Vue({
 
             let lh_white_geometry = this.mesh.lh.white_geometry;
             let rh_white_geometry = this.mesh.rh.white_geometry;
+            let lh_white_position = lh_white_geometry.attributes.position;
+            let rh_white_position = rh_white_geometry.attributes.position;
 
-            set_color.call(this, rh_color, rh_position, rh_white_geometry.attributes.position);
-            set_color.call(this, lh_color, lh_position, lh_white_geometry.attributes.position);
+            //console.log("update_color");
+            let r2 = this.prf.vol.r2;
+            let v, vmin, vmax;
 
-            function set_color(color, position, white_position) {
+            let r2_lh, r2_rh;
+            let v_lh, v_rh;
+//            switch(this.gui.overlay_type) {
+//            case "volume":
+//            case "surface":
+            switch(this.gui.overlay_type) {
+            case "volume":
+                switch(this.gui.overlay) {
+                case "r2":
+                    r2 = this.prf.vol.r2;
+                    break;
+                case "r2*polar_angle":
+                    r2 = this.prf.vol.r2;
+                    v = this.prf.vol.p_angle;
+                    break;
+                case "r2*rf_width":
+                    r2 = this.prf.vol.r2;
+                    v = this.prf.vol.rf_width;
+                    break;
+                case "r2*eccentricity":
+                    r2 = this.prf.vol.r2;
+                    v = this.prf.vol.ecc;
+                    break;
+                case "r2*varea":
+                    r2 = this.prf.vol.r2;
+                    v = this.prf.vol.varea;
+                    if(!v) {
+                        alert("No data for this overlay");
+                        return;
+                    }
+                    break;
+                }
+                if(v) {
+                    vmin = v.stats.min;
+                    vmax = v.stats.max;
+                } else {
+                    vmin = r2.stats.min;
+                    vmax = r2.stats.max;
+                }
 
-                this.legend.min = vmin;
-                this.legend.max = vmax;
+                set_color_vol.call(this, rh_color, rh_position, rh_white_position);
+                set_color_vol.call(this, lh_color, lh_position, lh_white_position);
+
+                break;
+            case "surface":
+                switch(this.gui.overlay) {
+                case "r2":
+                    r2_lh = this.prf.surf.lh.r2;
+                    r2_rh = this.prf.surf.rh.r2;
+                    break;
+                case "r2*polar_angle":
+                    r2_lh = this.prf.surf.lh.r2;
+                    r2_rh = this.prf.surf.rh.r2;
+                    v_lh = this.prf.surf.lh.p_angle;
+                    v_rh = this.prf.surf.rh.p_angle;
+                    break;
+                case "r2*rf_width":
+                    r2_lh = this.prf.surf.lh.r2;
+                    r2_rh = this.prf.surf.rh.r2;
+                    v_lh = this.prf.surf.lh.rf_width;
+                    v_rh = this.prf.surf.rh.rf_width;
+                    break;
+                case "r2*eccentricity":
+                    r2_lh = this.prf.surf.lh.r2;
+                    r2_rh = this.prf.surf.rh.r2;
+                    v_lh = this.prf.surf.lh.ecc;
+                    v_rh = this.prf.surf.rh.ecc;
+                    break;
+                case "r2*varea":
+                    r2_lh = this.prf.surf.lh.r2;
+                    r2_rh = this.prf.surf.rh.r2;
+                    v_lh = this.prf.surf.lh.varea;
+                    v_rh = this.prf.surf.rh.varea;
+                    if(!v_lh || !v_rh) {
+                        alert("No data for this overlay");
+                        return;
+                    }
+                    break;
+                }
+                if(v_lh) {
+                    vmin = Math.min(v_lh.stats.min, v_rh.stats.min);
+                    vmax = Math.max(v_lh.stats.max, v_rh.stats.max);
+                } else {
+                    vmin = Math.min(r2_lh.stats.min, r2_rh.stats.min);
+                    vmax = Math.max(r2_lh.stats.max, r2_rh.stats.max);
+                }
+
+                // set_color_surf.call(this, lh.color);
+                // set_color_surf.call(this, rh.color);
+                set_color_surf.call(this, lh_color, r2_lh, v_lh);
+                set_color_surf.call(this, rh_color, r2_rh, v_rh);
+
+                break;
+            }
+            // if(v) {
+            //     vmin = v.stats.min;
+            //     vmax = v.stats.max;
+            // } else {
+            //     vmin = r2.stats.min;
+            //     vmax = r2.stats.max;
+            // }
+
+
+
+
+
+
+            //debugger;
+            // if(v) {
+            //     vmin = v.stats.min;
+            //     vmax = v.stats.max;
+            // } else {
+            //     vmin = Math.min(r2.stats.min, r2_rh.stats.min);
+            //     vmax = Math.max(r2_lh.stats.max, r2_rh.stats.max);
+            // }
+
+
+            // set_color.call(this, rh_color, rh_position, rh_white_position);
+            // set_color.call(this, lh_color, lh_position, lh_white_position);
+
+//
+//
+            function set_color_vol(color, position, white_position) {
+
                 this.legend.colors = [];
                 for(let i = 0;i < 256;++i) {
                     let h,s,l;
@@ -396,13 +519,17 @@ new Vue({
                     this.legend.colors.push(hsl_to_rgb(h, s, l));
                 }
 
+                this.legend.min = vmin;
+                this.legend.max = vmax;
+
+
                 color.needsUpdate = true;
-                //console.dir(this.prf.r2.header);
+                //console.dir(this.prf.vol.r2.header);
 
                 for(var i = 0;i < color.count;++i) { 
                     if(!r2) {
                         //must be none - show white-ish brain
-                        color.setXYZ(i, 200, 200, 200); 
+                        color.setXYZ(i, 200, 200, 200);
                         continue;
                     }
                     //get vertex coord
@@ -419,7 +546,7 @@ new Vue({
                     let z = (z_w - z_b) * this.gui.cortical_depth + z_b
 
                     //convert it to voxel coords and get the value
-                    let header = this.prf.r2.header;
+                    let header = this.prf.vol.r2.header;
                     let affine = matrix_invert(header.affine);
                     let vx = Math.round(x*affine[0][0] + y*affine[0][1] + z*affine[0][2] + affine[0][3]);
                     let vy = Math.round(x*affine[1][0] + y*affine[1][1] + z*affine[1][2] + affine[1][3]);
@@ -454,7 +581,67 @@ new Vue({
                     let {r,g,b} = hsl_to_rgb(h, s, l);
                     color.setXYZ(i, r, g, b);
                 }
+
+
+                
             }
+
+            // function set_color_surf(color) {
+            function set_color_surf(color, r2, v) {
+                this.legend.colors = [];
+                for(let i = 0;i < 256;++i) {
+                    let h,s,l;
+                    if(this.gui.overlay == "r2") {
+                        //r2 is shown as just gray
+                        h = 0;
+                        s = 0;
+                        l = map_value(i, 0, 256, 0, 1);
+                    } else {
+                        h = map_value(i, 0, 256, 0, 240); //red to blue
+                        s = 1;
+                        l = 0.5;
+                    }
+                    this.legend.colors.push(hsl_to_rgb(h, s, l));
+                }
+
+                this.legend.min = vmin;
+                this.legend.max = vmax;
+
+
+                color.needsUpdate = true;
+                //console.dir(this.prf.vol.r2.header);
+
+                for(var i = 0;i < color.count;++i) { 
+                    if(!r2) {
+                        //must be none - show white-ish brain
+                        color.setXYZ(i, 200, 200, 200);
+                        continue;
+                    }
+
+                    let r2_val = r2.get(i) + this.gui.r2_offset;
+
+                    let h, s, l;
+                    l = map_value(r2_val, r2.stats.min, r2.stats.max, 0, 0.5);
+                    if(v) {
+                        let v_val = v.get(i);      
+                        if(isNaN(v_val) || v_val == 0) {
+                            color.setXYZ(i, 50, 50, 100); 
+                            continue;
+                        }
+                        h = map_value(v_val, vmin, vmax, 0, 240); //red to blue
+                        s = 1;
+                        //if(i % 10000 == 0) console.log(v_val, r2_val, vx, vy, vz, h);
+                    } else {
+                        //r2 only
+                        h = 0;
+                        s = 0; //gray!
+                    }
+                    
+                    let {r,g,b} = hsl_to_rgb(h, s, l);
+                    color.setXYZ(i, r, g, b);
+                }
+            }
+
         },
 
         animate() {
@@ -500,10 +687,52 @@ new Vue({
                 inflated_geometry.attributes.normal.clone(),
             ];
             mesh.updateMorphTargets();
+            //console.log(mesh.geometry.vertices[0]);
+            //console.log(mesh.geometry.faces[0]);
             return mesh;
         },
 
         load() {
+
+            
+
+            let url = this.config.urlbase+"/lh_eccen.gii";
+            console.log(url);
+            if(this.config.jwt) url += "?at="+this.config.jwt;
+            console.log(url);
+            //let rawdata = fs.readFileSync(url);
+            var json = '{"result":true, "count":42}';
+            //let asdf = JSON.parse(json);
+
+            //let student = JSON.parse(url);
+            //console.log(student);
+            //console.log(asdf);
+            console.log('see if it works');
+
+            fetch(url).then(res=>{
+                return res.text();
+            }).then(xml=>{
+                var gii = gifti.parse(xml);
+                console.dir(gii);
+                let data = gii.dataArrays[0].getData();
+                console.log(data);
+                // DataArray.getData() will return Float32Array, Uint8Array or Int32Array depending on datatype
+                //var data = gii.getColorsDataArray().getData();
+                //console.dir(data);
+                //var points = gii.getPointsDataArray().getData();
+                //var indices = gii.getTrianglesDataArray().getData();
+                //var normals = gii.getNormalsDataArray().getData();
+                //var colors = gii.getColorsDataArray().getData();
+                //var labels = gii.labelTable;
+                //console.dir(points);
+                //console.dir(indices);
+                //debugger;
+            });
+
+
+            
+
+            
             let vtkloader = new THREE.VTKLoader();
             let vtks = [ 
                 "lh.pial.vtk",
@@ -543,26 +772,78 @@ new Vue({
                 this.update_position();
 
                 this.loading = "pRF volumes";
+
 		let promises = [];
 	    	let nifties = ["r2.nii.gz", "polarAngle.nii.gz", "rfWidth.nii.gz", "eccentricity.nii.gz", "varea.nii.gz"];
 		nifties.forEach(n=>{
 		    let url = this.config.urlbase+"/"+n;
 		    if(this.config.jwt) url += "?at="+this.config.jwt;
-		    promises.push(load_nifti.call(this, url));
+            promises.push(load_nifti.call(this, url));
+        });
+
+            let gifties = ["lh.r2.gii", "lh.polarAngle.gii", "lh.rfWidth.gii", "lh.eccentricity.gii", "lh.varea.gii", "rh.r2.gii", "rh.polarAngle.gii", "rh.rfWidth.gii", "rh.eccentricity.gii", "rh.varea.gii"];
+        gifties.forEach(n=>{
+            let url = this.config.urlbase+"/benson14_surfaces/"+n;
+            if(this.config.jwt) url += "?at="+this.config.jwt;
+            promises.push(load_gifti.call(this,url));
 		});
                 Promise.all(promises).then(outs=>{
                     console.log("loaded all volumes");
                     console.dir(outs);
 
-                    this.prf.r2 = outs[0];
-                    this.prf.p_angle = outs[1];
-                    this.prf.rf_width = outs[2];
-                    this.prf.ecc = outs[3];
-                    this.prf.varea = outs[4];
+                    this.prf.vol.r2 = outs[0];
+                    this.prf.vol.p_angle = outs[1];
+                    this.prf.vol.rf_width = outs[2];
+                    this.prf.vol.ecc = outs[3];
+                    this.prf.vol.varea = outs[4];
+                    this.prf.surf.lh.r2 = outs[5];
+                    this.prf.surf.lh.p_angle = outs[6];
+                    this.prf.surf.lh.rf_width = outs[7];
+                    this.prf.surf.lh.ecc = outs[8];
+                    this.prf.surf.lh.varea = outs[9];
+                    this.prf.surf.rh.r2 = outs[10];
+                    this.prf.surf.rh.p_angle = outs[11];
+                    this.prf.surf.rh.rf_width = outs[12];
+                    this.prf.surf.rh.ecc = outs[13];
+                    this.prf.surf.rh.varea = outs[14];
                     this.update_color();
                     this.loading = false;
                 });
             });
+
+            //debugger;
+
+            function load_gifti(path) {
+                return new Promise((resolve, reject)=>{
+                    this.loading = path;
+                    //console.log(path);
+                    fetch(path).then(res=>{
+                        return res.text()
+                    }).then(xml=>{
+                        var gii = gifti.parse(xml);
+                        let data = gii.dataArrays[0].getData();
+                        let get = function(i) {
+                            return data[i];
+                        }
+                        let min = null;
+                        let max = null;
+                        data.forEach(v=>{
+                            if (!isNaN(v)) {
+                                if (min == null) min = v;
+                                else min = v < min ? v : min;
+                                if (max == null) max = v;
+                                else max = v > max ? v : max;
+                            }
+                        });
+                        resolve({stats: {min, max}, get});
+                        // resolve({get});
+                    }).catch(err=>{
+                        console.log("failed to load gifti:"+path);
+                        console.dir(err);
+                        resolve(null); 
+                    });
+                });
+            }
             
             function load_nifti(path) {
                 return new Promise((resolve, reject)=>{

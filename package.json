@@ -5,19 +5,21 @@
   "main": "index.js",
   "scripts": {
     "dev": "lite-server",
-    "deploy-prod": "rsync -av . brainlife.io:/usr/local/static/ui-prf-k"
+    "bundle": "browserify bundle.js -o bundled.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "dat.gui": "^0.7.6",
+    "gifti-reader-js": "^0.4.4",
+    "matrix-inverse": "^1.0.1",
     "ndarray": "^1.0.18",
     "nifti-js": "^1.0.1",
     "nifti-reader-js": "^0.5.4",
     "npm": "^6.9.0",
     "pako": "^1.0.10",
     "panning-orbit-controls": "^1.0.1",
-    "three": "^0.108.0",
+    "three": "^0.103.0",
     "vue": "^2.6.10"
   }
 }
