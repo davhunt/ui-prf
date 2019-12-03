@@ -168,13 +168,6 @@ new Vue({
                 colors: [],
             },
 
-            // prf: {
-            //     r2: null,
-            //     p_angle: null,
-            //     rf_width: null,
-            //     ecc: null,
-            //     varea: null,  //optional
-            // },
 
            prf: {
                vol: {
@@ -360,7 +353,7 @@ new Vue({
             //make sure we have everything we need
             if(!this.mesh.lh) return;
             if(!this.mesh.rh) return;
-            if(!this.prf.vol.r2) return;
+            if(!this.prf.vol.r2 && (!this.prf.surf.rh.r2 || !this.prf.surf.lh.r2)) return;
 
             let lh_geometry = this.mesh.lh.geometry;
             let lh_color = lh_geometry.attributes.color;
@@ -381,9 +374,7 @@ new Vue({
 
             let r2_lh, r2_rh;
             let v_lh, v_rh;
-//            switch(this.gui.overlay_type) {
-//            case "volume":
-//            case "surface":
+
             switch(this.gui.overlay_type) {
             case "volume":
                 switch(this.gui.overlay) {
@@ -424,32 +415,40 @@ new Vue({
 
                 break;
             case "surface":
+                r2_lh = this.prf.surf.lh.r2;
+                r2_rh = this.prf.surf.rh.r2;
+                if(!r2_lh || !r2_rh) {
+                    alert("No data for this overlay");
+                    return;
+                }
                 switch(this.gui.overlay) {
                 case "r2":
-                    r2_lh = this.prf.surf.lh.r2;
-                    r2_rh = this.prf.surf.rh.r2;
                     break;
                 case "r2*polar_angle":
-                    r2_lh = this.prf.surf.lh.r2;
-                    r2_rh = this.prf.surf.rh.r2;
                     v_lh = this.prf.surf.lh.p_angle;
                     v_rh = this.prf.surf.rh.p_angle;
+                    if(!v_lh || !v_rh) {
+                        alert("No data for this overlay");
+                        return;
+                    }
                     break;
                 case "r2*rf_width":
-                    r2_lh = this.prf.surf.lh.r2;
-                    r2_rh = this.prf.surf.rh.r2;
                     v_lh = this.prf.surf.lh.rf_width;
                     v_rh = this.prf.surf.rh.rf_width;
+                    if(!v_lh || !v_rh) {
+                        alert("No data for this overlay");
+                        return;
+                    }
                     break;
                 case "r2*eccentricity":
-                    r2_lh = this.prf.surf.lh.r2;
-                    r2_rh = this.prf.surf.rh.r2;
                     v_lh = this.prf.surf.lh.ecc;
                     v_rh = this.prf.surf.rh.ecc;
+                    if(!v_lh || !v_rh) {
+                        alert("No data for this overlay");
+                        return;
+                    }
                     break;
                 case "r2*varea":
-                    r2_lh = this.prf.surf.lh.r2;
-                    r2_rh = this.prf.surf.rh.r2;
                     v_lh = this.prf.surf.lh.varea;
                     v_rh = this.prf.surf.rh.varea;
                     if(!v_lh || !v_rh) {
@@ -466,38 +465,11 @@ new Vue({
                     vmax = Math.max(r2_lh.stats.max, r2_rh.stats.max);
                 }
 
-                // set_color_surf.call(this, lh.color);
-                // set_color_surf.call(this, rh.color);
                 set_color_surf.call(this, lh_color, r2_lh, v_lh);
                 set_color_surf.call(this, rh_color, r2_rh, v_rh);
 
                 break;
             }
-            // if(v) {
-            //     vmin = v.stats.min;
-            //     vmax = v.stats.max;
-            // } else {
-            //     vmin = r2.stats.min;
-            //     vmax = r2.stats.max;
-            // }
-
-
-
-
-
-
-            //debugger;
-            // if(v) {
-            //     vmin = v.stats.min;
-            //     vmax = v.stats.max;
-            // } else {
-            //     vmin = Math.min(r2.stats.min, r2_rh.stats.min);
-            //     vmax = Math.max(r2_lh.stats.max, r2_rh.stats.max);
-            // }
-
-
-            // set_color.call(this, rh_color, rh_position, rh_white_position);
-            // set_color.call(this, lh_color, lh_position, lh_white_position);
 
 //
 //
@@ -524,7 +496,6 @@ new Vue({
 
 
                 color.needsUpdate = true;
-                //console.dir(this.prf.vol.r2.header);
 
                 for(var i = 0;i < color.count;++i) { 
                     if(!r2) {
@@ -556,7 +527,7 @@ new Vue({
 
                     /*
                     if(isNaN(r2_val)) {
-                        color.setXYZ(i, 50, 50, 50); 
+                        color.setXYZ(i, 50, 50, 50);
                         continue;
                     }
                     */
@@ -586,7 +557,6 @@ new Vue({
                 
             }
 
-            // function set_color_surf(color) {
             function set_color_surf(color, r2, v) {
                 this.legend.colors = [];
                 for(let i = 0;i < 256;++i) {
@@ -607,9 +577,7 @@ new Vue({
                 this.legend.min = vmin;
                 this.legend.max = vmax;
 
-
                 color.needsUpdate = true;
-                //console.dir(this.prf.vol.r2.header);
 
                 for(var i = 0;i < color.count;++i) { 
                     if(!r2) {
@@ -687,52 +655,10 @@ new Vue({
                 inflated_geometry.attributes.normal.clone(),
             ];
             mesh.updateMorphTargets();
-            //console.log(mesh.geometry.vertices[0]);
-            //console.log(mesh.geometry.faces[0]);
             return mesh;
         },
 
         load() {
-
-            
-
-            let url = this.config.urlbase+"/lh_eccen.gii";
-            console.log(url);
-            if(this.config.jwt) url += "?at="+this.config.jwt;
-            console.log(url);
-            //let rawdata = fs.readFileSync(url);
-            var json = '{"result":true, "count":42}';
-            //let asdf = JSON.parse(json);
-
-            //let student = JSON.parse(url);
-            //console.log(student);
-            //console.log(asdf);
-            console.log('see if it works');
-
-            fetch(url).then(res=>{
-                return res.text();
-            }).then(xml=>{
-                var gii = gifti.parse(xml);
-                console.dir(gii);
-                let data = gii.dataArrays[0].getData();
-                console.log(data);
-                // DataArray.getData() will return Float32Array, Uint8Array or Int32Array depending on datatype
-                //var data = gii.getColorsDataArray().getData();
-                //console.dir(data);
-                //var points = gii.getPointsDataArray().getData();
-                //var indices = gii.getTrianglesDataArray().getData();
-                //var normals = gii.getNormalsDataArray().getData();
-                //var colors = gii.getColorsDataArray().getData();
-                //var labels = gii.labelTable;
-                //console.dir(points);
-                //console.dir(indices);
-                //debugger;
-            });
-
-
-            
-
-            
             let vtkloader = new THREE.VTKLoader();
             let vtks = [ 
                 "lh.pial.vtk",
@@ -816,7 +742,6 @@ new Vue({
             function load_gifti(path) {
                 return new Promise((resolve, reject)=>{
                     this.loading = path;
-                    //console.log(path);
                     fetch(path).then(res=>{
                         return res.text()
                     }).then(xml=>{
@@ -836,7 +761,6 @@ new Vue({
                             }
                         });
                         resolve({stats: {min, max}, get});
-                        // resolve({get});
                     }).catch(err=>{
                         console.log("failed to load gifti:"+path);
                         console.dir(err);
@@ -886,7 +810,6 @@ new Vue({
                             return image[idx];
                         }
 
-                        //find min/max
                         let min = null;
                         let max = null;
                         image.forEach(v=>{
@@ -897,7 +820,6 @@ new Vue({
                                 else max = v > max ? v : max;
                             }
                         });
-                        //console.dir({min, max})
                         resolve({header, image, stats: {min, max}, get});
                     }).catch(err=>{
                         console.log("failed to load nifti:"+path);
