@@ -2,5 +2,3 @@ testdata*
 node_modules
 package-lock.json
 barn
-main_copy.js
-t1*
