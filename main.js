@@ -406,8 +406,10 @@ new Vue({
                     vmin = v.stats.min;
                     vmax = v.stats.max;
                 } else {
-                    vmin = r2.stats.min;
-                    vmax = r2.stats.max;
+                    if(r2) {
+                        vmin = r2.stats.min;
+                        vmax = r2.stats.max;
+                    }
                 }
 
                 set_color_vol.call(this, rh_color, rh_position, rh_white_position);
