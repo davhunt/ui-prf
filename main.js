@@ -155,6 +155,9 @@ new Vue({
                 //overlay: 'r2',
                 r2_offset: 0,                  
 
+                threshold_r2: false,
+                threshold_level: 0.15,
+
                 cortical_depth: 0.5,
                 inflate: 0.5,
 
@@ -312,10 +315,10 @@ new Vue({
                 this.update_color();
             });
 
-            overlay.add(this.gui, 'r2_offset', 0, 10).step(0.01).onChange(v=>{
+            overlay.add(this.gui, 'r2_offset', 0, 1).step(0.01).onChange(v=>{
                 this.update_color();
             });
-            /*
+                        /*
             overlay.add(this.gui, 'r2_min', 0, 0.5).step(0.01).onChange(v=>{
                 this.update_color();
             });
@@ -324,6 +327,23 @@ new Vue({
             });
             */
             overlay.open();
+
+            var threshold = this.gui.ui.addFolder('Threshold');
+            // blacks out vertices for which variance explained is below a certain amount
+   
+            var p = threshold.add(this.gui, 'threshold_r2', true, false).onChange(v=>{
+                if(!this.mesh.lh) return;
+                this.update_color();
+            });
+
+            threshold.add(this.gui, 'threshold_level', 0, 1).step(0.01).onChange(v=>{
+                if(!this.mesh.lh) return;
+                this.gui.threshold_r2 = true;
+                p.updateDisplay();
+                // p.__prev = p.__checkbox.checked;
+                this.update_color();
+            });
+            threshold.open();
         },
 
         resized() {
@@ -535,10 +555,18 @@ new Vue({
                     */
 
                     let h, s, l;
-                    l = map_value(r2_val, r2.stats.min, r2.stats.max, 0, 0.5);
+                    if(this.gui.threshold_r2) {
+                        if(r2_val >= this.gui.threshold_level) {
+                            l = 0.5;
+                        } else {
+                            l = 0.0;
+                        }
+                    } else {
+                        l = map_value(r2_val, r2.stats.min, r2.stats.max, 0, 0.5);
+                    }
                     if(v) {
                         let v_val = v.get(vx, vy, vz);      
-                        if(isNaN(v_val) || v_val == 0) {
+                        if(isNaN(v_val) || (v_val == 0 && this.gui.overlay != 'r2*polar_angle')) {
                             color.setXYZ(i, 50, 50, 100); 
                             continue;
                         }
@@ -591,10 +619,19 @@ new Vue({
                     let r2_val = r2.get(i) + this.gui.r2_offset;
 
                     let h, s, l;
-                    l = map_value(r2_val, r2.stats.min, r2.stats.max, 0, 0.5);
+                    if(this.gui.threshold_r2) {
+                        // if(r2_val >= this.gui.threshold_level) {
+                        if(r2_val - this.gui.r2_offset >= this.gui.threshold_level) {
+                            l = 0.5;
+                        } else {
+                            l = 0.0;
+                        }
+                    } else {
+                        l = map_value(r2_val, r2.stats.min, r2.stats.max, 0, 0.5);
+                    }
                     if(v) {
                         let v_val = v.get(i);      
-                        if(isNaN(v_val) || v_val == 0) {
+                        if(isNaN(v_val) || (v_val == 0 && this.gui.overlay != 'r2*polar_angle')) {
                             color.setXYZ(i, 50, 50, 100); 
                             continue;
                         }
@@ -834,4 +871,3 @@ new Vue({
         },
     },
 });
-
