@@ -748,7 +748,7 @@ new Vue({
 
             let gifties = ["lh.r2.gii", "lh.polarAngle.gii", "lh.rfWidth.gii", "lh.eccentricity.gii", "lh.varea.gii", "rh.r2.gii", "rh.polarAngle.gii", "rh.rfWidth.gii", "rh.eccentricity.gii", "rh.varea.gii"];
         gifties.forEach(n=>{
-            let url = this.config.urlbase+"/benson14_surfaces/"+n;
+            let url = this.config.urlbase+"/prf_surfaces/"+n;
             if(this.config.jwt) url += "?at="+this.config.jwt;
             promises.push(load_gifti.call(this,url));
 		});
