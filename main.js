@@ -98,6 +98,22 @@ function matrix_invert(M){
 }
 //
 
+function percentile_value(vox, p) {
+    if (typeof p !== 'number') throw new TypeError('p must be a number');
+    if (vox.len() === 0) return 0;
+    var i;
+    var arr = [];
+    for (i = 0; i < vox.len(); i++) {
+        arr.push(vox.get(i));
+    }
+    if (p <= 0) return arr.sort()[0];
+    if (p >= 1) return arr.sort()[arr.length - 1];
+
+    var index = (arr.length - 1) * p,
+    lower = Math.floor(index);
+    return arr.sort()[lower];
+}
+
 function hsl_to_rgb(h, s, l) {
     //convert hsl to rgb
     let c = (1 - Math.abs(2 * l - 1)) * s;
@@ -423,8 +439,19 @@ new Vue({
                     break;
                 }
                 if(v) {
-                    vmin = v.stats.min;
-                    vmax = v.stats.max;
+                    vmin = Math.min(v.stats.min, v.stats.min);
+                    // Make vmax 90th percentile of values in case of eccentricity or rfWidth overlay
+                    switch(this.gui.overlay) {
+                        case "r2*eccentricity":
+                        case "r2*rf_width":
+                            vmax = percentile_value(v,0.9);
+                            break;
+                        default:
+                            vmax = v.stats.max;
+                            break;
+                    }
+
+
                 } else {
                     if(r2) {
                         vmin = r2.stats.min;
@@ -481,7 +508,18 @@ new Vue({
                 }
                 if(v_lh) {
                     vmin = Math.min(v_lh.stats.min, v_rh.stats.min);
-                    vmax = Math.max(v_lh.stats.max, v_rh.stats.max);
+                    // Make vmax 90th percentile of values in case of eccentricity or rfWidth overlay
+                    switch(this.gui.overlay) {
+                        case "r2*eccentricity":
+                        case "r2*rf_width":
+                            vmax = Math.max(percentile_value(v_lh,0.9),percentile_value(v_rh,0.9));
+                            break;
+                        default:
+                            vmax = Math.max(v_lh.stats.max, v_rh.stats.max);
+                            break;
+                    }
+                    //vmax = Math.max(percentile_value(v_lh,0.9),percentile_value(v_rh,0.9));
+                    //vmax = Math.max(v_lh.stats.max, v_rh.stats.max);
                 } else {
                     vmin = Math.min(r2_lh.stats.min, r2_rh.stats.min);
                     vmax = Math.max(r2_lh.stats.max, r2_rh.stats.max);
@@ -791,6 +829,9 @@ new Vue({
                         }
                         let min = null;
                         let max = null;
+                        let len = function() {
+                            return data.length;
+                        }
                         data.forEach(v=>{
                             if (!isNaN(v)) {
                                 if (min == null) min = v;
@@ -799,7 +840,7 @@ new Vue({
                                 else max = v > max ? v : max;
                             }
                         });
-                        resolve({stats: {min, max}, get});
+                        resolve({stats: {min, max}, get, len});
                     }).catch(err=>{
                         console.log("failed to load gifti:"+path);
                         console.dir(err);
@@ -851,6 +892,9 @@ new Vue({
 
                         let min = null;
                         let max = null;
+                        let len = function() {
+                            return data.length;
+                        }
                         image.forEach(v=>{
                             if (!isNaN(v)) {
                                 if (min == null) min = v;
@@ -859,7 +903,7 @@ new Vue({
                                 else max = v > max ? v : max;
                             }
                         });
-                        resolve({header, image, stats: {min, max}, get});
+                        resolve({header, image, stats: {min, max}, get, len});
                     }).catch(err=>{
                         console.log("failed to load nifti:"+path);
                         console.dir(err);
