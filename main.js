@@ -5,114 +5,53 @@ function map_value(v, in_min, in_max, out_min, out_max) {
 
 // Returns the inverse of matrix `M`.
 function matrix_invert(M){
-    // I use Guassian Elimination to calculate the inverse:
-    // (1) 'augment' the matrix (left) by the identity (on the right)
-    // (2) Turn the matrix on the left into the identity by elemetry row ops
-    // (3) The matrix on the right is the inverse (was the identity matrix)
-    // There are 3 elemtary row ops: (I combine b and c in my code)
-    // (a) Swap 2 rows
-    // (b) Multiply a row by a scalar
-    // (c) Add 2 rows
-    
-    //if the matrix isn't square: exit (error)
     if(M.length !== M[0].length){return;}
-    
-    //create the identity matrix (I), and a copy (C) of the original
     var i=0, ii=0, j=0, dim=M.length, e=0, t=0;
     var I = [], C = [];
     for(i=0; i<dim; i+=1){
-        // Create the row
         I[I.length]=[];
         C[C.length]=[];
         for(j=0; j<dim; j+=1){
-            
-            //if we're on the diagonal, put a 1 (for identity)
             if(i==j){ I[i][j] = 1; }
             else{ I[i][j] = 0; }
-            
-            // Also, make the copy of the original
             C[i][j] = M[i][j];
         }
     }
-    
-    // Perform elementary row operations
     for(i=0; i<dim; i+=1){
-        // get the element e on the diagonal
         e = C[i][i];
-        
-        // if we have a 0 on the diagonal (we'll need to swap with a lower row)
         if(e==0){
-            //look through every row below the i'th row
             for(ii=i+1; ii<dim; ii+=1){
-                //if the ii'th row has a non-0 in the i'th col
                 if(C[ii][i] != 0){
-                    //it would make the diagonal have a non-0 so swap it
                     for(j=0; j<dim; j++){
-                        e = C[i][j];       //temp store i'th row
-                        C[i][j] = C[ii][j];//replace i'th row by ii'th
-                        C[ii][j] = e;      //repace ii'th by temp
-                        e = I[i][j];       //temp store i'th row
-                        I[i][j] = I[ii][j];//replace i'th row by ii'th
-                        I[ii][j] = e;      //repace ii'th by temp
+                        e = C[i][j];
+                        C[i][j] = C[ii][j];
+                        C[ii][j] = e;
+                        e = I[i][j];
+                        I[i][j] = I[ii][j];
+                        I[ii][j] = e;
                     }
-                    //don't bother checking other rows since we've swapped
                     break;
                 }
             }
-            //get the new diagonal
             e = C[i][i];
-            //if it's still 0, not invertable (error)
             if(e==0){return}
         }
-        
-        // Scale this row down by e (so we have a 1 on the diagonal)
         for(j=0; j<dim; j++){
-            C[i][j] = C[i][j]/e; //apply to original matrix
-            I[i][j] = I[i][j]/e; //apply to identity
+            C[i][j] = C[i][j]/e;
+            I[i][j] = I[i][j]/e;
         }
-        
-        // Subtract this row (scaled appropriately for each row) from ALL of
-        // the other rows so that there will be 0's in this column in the
-        // rows above and below this one
         for(ii=0; ii<dim; ii++){
-            // Only apply to other rows (we want a 1 on the diagonal)
             if(ii==i){continue;}
-            
-            // We want to change this element to 0
             e = C[ii][i];
-            
-            // Subtract (the row above(or below) scaled by e) from (the
-            // current row) but start at the i'th column and assume all the
-            // stuff left of diagonal is 0 (which it should be if we made this
-            // algorithm correctly)
             for(j=0; j<dim; j++){
-                C[ii][j] -= e*C[i][j]; //apply to original matrix
-                I[ii][j] -= e*I[i][j]; //apply to identity
+                C[ii][j] -= e*C[i][j];
+                I[ii][j] -= e*I[i][j];
             }
         }
     }
-    
-    //we've done all operations, C should be the identity
-    //matrix I should be the inverse:
     return I;
 }
-//
 
-function percentile_value(vox, p) {
-    if (typeof p !== 'number') throw new TypeError('p must be a number');
-    if (vox.len() === 0) return 0;
-    var i;
-    var arr = [];
-    for (i = 0; i < vox.len(); i++) {
-        arr.push(vox.get(i));
-    }
-    if (p <= 0) return arr.sort()[0];
-    if (p >= 1) return arr.sort()[arr.length - 1];
-
-    var index = (arr.length - 1) * p,
-    lower = Math.floor(index);
-    return arr.sort()[lower];
-}
 
 function hsl_to_rgb(h, s, l) {
     //convert hsl to rgb
@@ -196,7 +135,7 @@ new Vue({
                    ecc: null,
                    varea: null,  //optional
                },
-               surf: { //optional
+               surf: {
                    lh: {
                        r2: null,
                        p_angle: null,
@@ -440,11 +379,12 @@ new Vue({
                 }
                 if(v) {
                     vmin = Math.min(v.stats.min, v.stats.min);
+                    // debugger;
                     // Make vmax 90th percentile of values in case of eccentricity or rfWidth overlay
                     switch(this.gui.overlay) {
                         case "r2*eccentricity":
                         case "r2*rf_width":
-                            vmax = percentile_value(v,0.9);
+                            vmax = v.perc();
                             break;
                         default:
                             vmax = v.stats.max;
@@ -512,14 +452,12 @@ new Vue({
                     switch(this.gui.overlay) {
                         case "r2*eccentricity":
                         case "r2*rf_width":
-                            vmax = Math.max(percentile_value(v_lh,0.9),percentile_value(v_rh,0.9));
+                            vmax = Math.max(v_lh.perc(),v_rh.perc());
                             break;
                         default:
                             vmax = Math.max(v_lh.stats.max, v_rh.stats.max);
                             break;
                     }
-                    //vmax = Math.max(percentile_value(v_lh,0.9),percentile_value(v_rh,0.9));
-                    //vmax = Math.max(v_lh.stats.max, v_rh.stats.max);
                 } else {
                     vmin = Math.min(r2_lh.stats.min, r2_rh.stats.min);
                     vmax = Math.max(r2_lh.stats.max, r2_rh.stats.max);
@@ -578,7 +516,7 @@ new Vue({
 
                     //convert it to voxel coords and get the value
                     let header = this.prf.vol.r2.header;
-                    let affine = matrix_invert(header.affine);
+                    var affine = matrix_invert(header.affine);
                     let vx = Math.round(x*affine[0][0] + y*affine[0][1] + z*affine[0][2] + affine[0][3]);
                     let vy = Math.round(x*affine[1][0] + y*affine[1][1] + z*affine[1][2] + affine[1][3]);
                     let vz = Math.round(x*affine[2][0] + y*affine[2][1] + z*affine[2][2] + affine[2][3]);
@@ -603,7 +541,8 @@ new Vue({
                         l = map_value(r2_val, r2.stats.min, r2.stats.max, 0, 0.5);
                     }
                     if(v) {
-                        let v_val = v.get(vx, vy, vz);      
+                        // let v_val = v.get(vx, vy, vz);     
+                        let v_val = v.get_avg(white_position, position, affine, i); 
                         if(isNaN(v_val) || (v_val == 0 && this.gui.overlay != 'r2*polar_angle')) {
                             color.setXYZ(i, 50, 50, 100); 
                             continue;
@@ -832,6 +771,17 @@ new Vue({
                         let len = function() {
                             return data.length;
                         }
+                        let perc = function() {
+                            var arr = [];
+                            var i;
+                            for (i=0; i<data.length; i++) {
+                                if (!isNaN(data[i])) {
+                                    arr.push(data[i]);
+                                }
+                            }
+                            var index = Math.floor(arr.length*0.9);
+                            return arr.sort()[index];
+                        }
                         data.forEach(v=>{
                             if (!isNaN(v)) {
                                 if (min == null) min = v;
@@ -840,7 +790,7 @@ new Vue({
                                 else max = v > max ? v : max;
                             }
                         });
-                        resolve({stats: {min, max}, get, len});
+                        resolve({stats: {min, max}, get, len, perc});
                     }).catch(err=>{
                         console.log("failed to load gifti:"+path);
                         console.dir(err);
@@ -890,10 +840,49 @@ new Vue({
                             return image[idx];
                         }
 
+                        let get_avg = function(white, pial, affine, i) {
+                            var voxs = [];
+                            var sum = 0;
+                            var numsteps = 10;
+                            for (var j = 0; j <= numsteps; j++) {
+                                let x = (white.getX(i) - pial.getX(i))*(j/numsteps) + pial.getX(i);
+                                let y = (white.getY(i) - pial.getY(i))*(j/numsteps) + pial.getY(i);
+                                let z = (white.getZ(i) - pial.getZ(i))*(j/numsteps) + pial.getZ(i);
+                                let vx = Math.round(x*affine[0][0] + y*affine[0][1] + z*affine[0][2] + affine[0][3]);
+                                let vy = Math.round(x*affine[1][0] + y*affine[1][1] + z*affine[1][2] + affine[1][3]);
+                                let vz = Math.round(x*affine[2][0] + y*affine[2][1] + z*affine[2][2] + affine[2][3]);
+                                // if (!voxs.includes(vx,vy,vz)) {
+                                //     voxs.push([vx,vy,vz]);
+                                // }
+                                voxs.push([vx,vy,vz]);
+                            }
+                            var n = 0;
+                            for (var j = 0; j < voxs.length; j++) {
+                                let idx = x_step*voxs[j][0]+y_step*voxs[j][1]+z_step*voxs[j][2];
+                                if (!isNaN(image[idx])) {
+                                    sum = sum + image[idx];
+                                    n = n+1;
+                                    // console.log(image[idx]);
+                                }
+                            }
+                            return sum/n;
+                        }
+
                         let min = null;
                         let max = null;
                         let len = function() {
-                            return data.length;
+                            return image.length;
+                        }
+                        let perc = function() {
+                            var arr = [];
+                            var i;
+                            for (i=0; i<image.length; i++) {
+                                if (!isNaN(image[i])) {
+                                    arr.push(image[i]);
+                                }
+                            }
+                            var index = Math.floor(arr.length*0.9);
+                            return arr.sort()[index];
                         }
                         image.forEach(v=>{
                             if (!isNaN(v)) {
@@ -903,7 +892,7 @@ new Vue({
                                 else max = v > max ? v : max;
                             }
                         });
-                        resolve({header, image, stats: {min, max}, get, len});
+                        resolve({header, image, stats: {min, max}, get, get_avg, len, perc});
                     }).catch(err=>{
                         console.log("failed to load nifti:"+path);
                         console.dir(err);
