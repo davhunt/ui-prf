@@ -1,57 +1,6 @@
-
 function map_value(v, in_min, in_max, out_min, out_max) {
     return (v - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
-
-// Returns the inverse of matrix `M`.
-function matrix_invert(M){
-    if(M.length !== M[0].length){return;}
-    var i=0, ii=0, j=0, dim=M.length, e=0, t=0;
-    var I = [], C = [];
-    for(i=0; i<dim; i+=1){
-        I[I.length]=[];
-        C[C.length]=[];
-        for(j=0; j<dim; j+=1){
-            if(i==j){ I[i][j] = 1; }
-            else{ I[i][j] = 0; }
-            C[i][j] = M[i][j];
-        }
-    }
-    for(i=0; i<dim; i+=1){
-        e = C[i][i];
-        if(e==0){
-            for(ii=i+1; ii<dim; ii+=1){
-                if(C[ii][i] != 0){
-                    for(j=0; j<dim; j++){
-                        e = C[i][j];
-                        C[i][j] = C[ii][j];
-                        C[ii][j] = e;
-                        e = I[i][j];
-                        I[i][j] = I[ii][j];
-                        I[ii][j] = e;
-                    }
-                    break;
-                }
-            }
-            e = C[i][i];
-            if(e==0){return}
-        }
-        for(j=0; j<dim; j++){
-            C[i][j] = C[i][j]/e;
-            I[i][j] = I[i][j]/e;
-        }
-        for(ii=0; ii<dim; ii++){
-            if(ii==i){continue;}
-            e = C[ii][i];
-            for(j=0; j<dim; j++){
-                C[ii][j] -= e*C[i][j];
-                I[ii][j] -= e*I[i][j];
-            }
-        }
-    }
-    return I;
-}
-
 
 function hsl_to_rgb(h, s, l) {
     //convert hsl to rgb
@@ -116,8 +65,10 @@ new Vue({
                 cortical_depth: 0.5,
                 inflate: 0.5,
 
-                split: 0, //50
-                open: Math.PI/4,
+                //split: 0, //50
+                //open: Math.PI/4,
+		split: 20,
+		open: Math.PI/8,
             },
 
             legend: {
@@ -378,13 +329,14 @@ new Vue({
                     break;
                 }
                 if(v) {
-                    vmin = Math.min(v.stats.min, v.stats.min);
+                    vmin = v.stats.min;
                     // debugger;
                     // Make vmax 90th percentile of values in case of eccentricity or rfWidth overlay
                     switch(this.gui.overlay) {
                         case "r2*eccentricity":
                         case "r2*rf_width":
                             vmax = v.perc();
+                            //vmax = v.stats.max;
                             break;
                         default:
                             vmax = v.stats.max;
@@ -453,6 +405,7 @@ new Vue({
                         case "r2*eccentricity":
                         case "r2*rf_width":
                             vmax = Math.max(v_lh.perc(),v_rh.perc());
+                            //vmax = Math.max(v_lh.stats.max, v_rh.stats.max);
                             break;
                         default:
                             vmax = Math.max(v_lh.stats.max, v_rh.stats.max);
@@ -516,12 +469,15 @@ new Vue({
 
                     //convert it to voxel coords and get the value
                     let header = this.prf.vol.r2.header;
-                    var affine = matrix_invert(header.affine);
+                    //var affine = matrix_invert(header.affine);
+                    var inv_affine = Sylvester.Matrix.create(header.affine); // vol -> surface affine -- Sylvester var from matrix-inverse.js (module?)
+                    var affine = inv_affine.inverse().elements // surface coords -> volume coords affine
                     let vx = Math.round(x*affine[0][0] + y*affine[0][1] + z*affine[0][2] + affine[0][3]);
                     let vy = Math.round(x*affine[1][0] + y*affine[1][1] + z*affine[1][2] + affine[1][3]);
                     let vz = Math.round(x*affine[2][0] + y*affine[2][1] + z*affine[2][2] + affine[2][3]);
 
-                    let r2_val = r2.get(vx, vy, vz) + this.gui.r2_offset;
+                    //let r2_val = r2.get(vx, vy, vz) + this.gui.r2_offset;
+                    let r2_val = r2.get_avg(white_position, position, affine, i);
 
                     /*
                     if(isNaN(r2_val)) {
@@ -541,8 +497,11 @@ new Vue({
                         l = map_value(r2_val, r2.stats.min, r2.stats.max, 0, 0.5);
                     }
                     if(v) {
-                        // let v_val = v.get(vx, vy, vz);     
+                        // let v_val = v.get(vx, vy, vz);
                         let v_val = v.get_avg(white_position, position, affine, i); 
+//			if (this.gui.overlay == "r2*varea") {
+//				v_val = v.get(vx, vy, vz);
+//			}
                         if(isNaN(v_val) || (v_val == 0 && this.gui.overlay != 'r2*polar_angle')) {
                             color.setXYZ(i, 50, 50, 100); 
                             continue;
@@ -731,7 +690,7 @@ new Vue({
 		});
                 Promise.all(promises).then(outs=>{
                     console.log("loaded all volumes");
-                    console.dir(outs);
+                    //console.dir(outs);
 
                     this.prf.vol.r2 = outs[0];
                     this.prf.vol.p_angle = outs[1];
@@ -775,11 +734,11 @@ new Vue({
                             var arr = [];
                             var i;
                             for (i=0; i<data.length; i++) {
-                                if (!isNaN(data[i])) {
+                                if (!isNaN(data[i]) && data[i] != 0.0) {
                                     arr.push(data[i]);
                                 }
                             }
-                            var index = Math.floor(arr.length*0.9);
+                            var index = Math.floor(arr.length*0.99);
                             return arr.sort()[index];
                         }
                         data.forEach(v=>{
@@ -877,11 +836,11 @@ new Vue({
                             var arr = [];
                             var i;
                             for (i=0; i<image.length; i++) {
-                                if (!isNaN(image[i])) {
+                                if (!isNaN(image[i]) && image[i] != 0.0) {
                                     arr.push(image[i]);
                                 }
                             }
-                            var index = Math.floor(arr.length*0.9);
+                            var index = Math.floor(arr.length*0.80);
                             return arr.sort()[index];
                         }
                         image.forEach(v=>{
