@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE GIFTI SYSTEM "http://www.nitrc.org/frs/download.php/115/gifti.dtd">
+<GIFTI NumberOfDataArrays="1" Version="1"><MetaData><MD><Name>AnatomicalStructurePrimary</Name><Value>Invalid</Value></MD><MD><Name>ProgramProvenance</Name><Value>Connectome Workbench
+Type: Command Line Application
+Version: 1.4.2
+Qt Compiled Version: 5.7.0
+Qt Runtime Version: 5.7.0
+Commit: 092b7f2f7dfab0f9ea7cbb6c1db2e5dffd2c1045
+Commit Date: 2020-01-07 17:24:23 -0600
+Compiled with OpenMP: YES
+Compiler: g++ (/home/caret/gcc/install/gcc-4.8.5/bin)
+Compiler Version: 4.8.5
+Compiled Debug: NO
+Operating System: Linux</Value></MD><MD><Name>Provenance</Name><Value>/usr/local/workbench/bin_linux64/../exe_linux64/wb_command -label-resample /N/slate/davhunt/Downloads/app-benson14-retinotopy/testoutput/prf/prf_surfaces/lh.varea.gii /N/slate/davhunt/Downloads/111312_hcp/111312_3T_Structural_preproc/MNINonLinear/Native/111312.L.sphere.reg.reg_LR.native.surf.gii /N/slate/davhunt/Downloads/111312_hcp/111312_3T_Structural_preproc/MNINonLinear/fsaverage_LR32k/111312.L.sphere.32k_fs_LR.surf.gii BARYCENTRIC /N/slate/davhunt/Downloads/app-benson14-retinotopy/testoutput/prf/prf_surfaces/lh.varea_test_MNI_32k.gii -largest</Value></MD><MD><Name>WorkingDirectory</Name><Value>/N/slate/davhunt/Downloads</Value></MD></MetaData><LabelTable><Label Alpha="0.0" Blue="1.0" Green="1.0" Key="0" Red="1.0">???</Label></LabelTable><DataArray ArrayIndexingOrder="RowMajorOrder" DataType="NIFTI_TYPE_INT32" Dim0="32492" Dimensionality="1" Encoding="GZipBase64Binary" Endian="LittleEndian" ExternalFileName="" ExternalFileOffset="0" Intent="NIFTI_INTENT_LABEL"><MetaData><MD><Name>Name</Name><Value>#1</Value></MD></MetaData><CoordinateSystemTransformMatrix><DataSpace>NIFTI_XFORM_UNKNOWN</DataSpace><TransformedSpace>NIFTI_XFORM_UNKNOWN</TransformedSpace><MatrixData>  1.000000   0.000000   0.000000   0.000000
+  0.000000   1.000000   0.000000   0.000000
+  0.000000   0.000000   1.000000   0.000000
+  0.000000   0.000000   0.000000   1.000000</MatrixData></CoordinateSystemTransformMatrix><Data>eJzt3YFunDgUBVCStrPd3f7/964iFYm1wH7GNpjpOZLVZAL4XsMkdNJqluX/fm0+fi3v5yMZnwdjzzuuBwDv7ehnWo/to9vWZgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACe7VdwzOZbxYh2fOI6ROj1HO/W6Z366DGPp19XT8+e+7k6q9L9wIxymWeUu++azVOyHt3TzmQv40xmzjd7LgAAeHfv/jsC3d6/1xP8qX2e4E/p8QTvlv9JnpYXAAAAYM/Ra0tH/6fir82fufGzMP4ujH8Co6Xf3ih1inbr0a93t7VfpGdLvzt6fY1/f48R12SPa/Fsn9Zeo85TS5dcp7PXXkuf1i4tz6c7etScj2ifXs+XlvwtHWrOQ84V61/KPyp7j3XPZR+RO5e55ZoZlbln3jXzMihvJGvN98hULu9dWXNaf47WZMzlLGm5H6vJd9aZe8blYM6euVa1uaJ6ZAMAAAAAAAAAAAAAAAAAAAAAAAAAAIC7vHbGj84DAAAAAHiWnq/rvTZ/vjaPt8yx97pm+vrmLMctHa/2mD0zXnmsO48R7XL2HPXYL7JPzfY1axDZrrRN6XwdfS3db+/x0ufrSN8L8+v92z8L42PAKM25HUfvP78d6drklN6PuPR+7V8j9z7Opfc3jfRZx/ZctfaKdDvbq6ZT2q2lV+Rc5Xr17LPtdbbTnX1yz72aLtEOZ7rUZD8aJaN79OgQ7TGiQ6/8pQ61+SPfu2qv/5b8tWv/PRk1z+He2aP508xp/t6ZW9Y8l3UdvbOeXeslmDfNHM1TuiebJWvkPjKSdevMddCa86OQszZfNGPtffnIfD0y9so2It/IdWvJdnWmSK7Z1qk1T8/1KTmbZS/PHTlq1iNi5Dm5av4zc/+4eN71Na0RfffmKs3Zcp2nnbajd7+jeWq7la7b0r9D7tGnR4/c+enR4Sj/iON+Djpu72ul5Xhnj1XK1SNP6zFG7nvUv3a/dJ/a7dN9otumx93brnab9OtHX/t+8Pj62Po7ktfm8/TjV/J4zXM6N2r/ThUZkXm/8m5/H9Cz14hOZ3stE5+nXp1m6RLptGbe6zPTeYmcm+05WLvM1uGqHjNcU2mPmfLXdojkvyLz2fWfJXuP3FeucynzXu6r87Wu8axZZ1nbyPeru3POnnHmfLNmO5NruTnPlZlq8ywD8+Tmj5ghQ2uOHvOfzdFr3tocS6d5AAAAAAAAAAAAAAAAAAAAAAAAAAAAAKL+A8idREU=</Data></DataArray></GIFTI>
