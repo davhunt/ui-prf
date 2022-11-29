@@ -77,6 +77,13 @@ new Vue({
                 colors: [],
             },
 
+            legend_varea: {
+                min: 0,
+                max: 12,
+                colors: [],
+                rois: ['N/A', 'V1', 'V2', 'V3', 'hV4', 'VO1', 'VO2', 'LO1', 'LO2', 'TO1', 'TO2', 'V3b', 'V3a'],
+            },
+
 
            prf: {
                vol: {
@@ -119,13 +126,17 @@ new Vue({
             <span>Zoom</span>
             <span>Pan</span>
             <br>
-            <img src="controls.png" height="50px"/>
+            <img src="trans.png" height="50px"/>
         </div>
-        <div class="color-legend" v-if="legend.colors.length > 0">
+        <div class="color-legend" v-if="legend.colors.length > 0 && gui.overlay != 'r2*varea'">
             <div class="color" v-for="color in legend.colors" :style="{'background-color': 'rgb('+color.r+','+color.g+', '+color.b+')'}"/>
             <br>
             <span class="min">{{legend.min.toFixed(2)}}</span>
             <span class="max">{{legend.max.toFixed(2)}}</span>
+        </div>
+        <div class="color-legend-varea" v-if="gui.overlay == 'r2*varea'">
+            <div class="color" v-for="color in legend_varea.colors" :style="{'background-color': 'rgb('+color.r+','+color.g+', '+color.b+')'}"/>
+            <span class="rois" v-for="roi in legend_varea.rois">{{roi}}</span>
         </div>
     </div>
     `,
@@ -422,28 +433,42 @@ new Vue({
                 break;
             }
 
+            this.legend.colors = [];
+            for(let i = 0;i < 256;++i) {
+                let h,s,l;
+                if(this.gui.overlay == "r2") {
+                    //r2 is shown as just gray
+                    h = 0;
+                    s = 0;
+                    l = map_value(i, 0, 256, 0, 1);
+                } else {
+                    h = map_value(i, 0, 256, 0, 240); //red to blue
+                    s = 1;
+                    l = 0.5;
+                }
+                this.legend.colors.push(hsl_to_rgb(h, s, l));
+            }
+
+                
+
+            this.legend.min = vmin;
+            this.legend.max = vmax;
+
+            this.legend_varea.colors = [];
+            for(let i = 0;i < 13;++i) {
+                let h;
+                h = map_value(i, 0, 12, 0, 320); //red to blue
+                this.legend_varea.colors.push(hsl_to_rgb(h, 1, 0.5));
+            }
+
+
+            //this.legend_varea.min = 1;
+            //this.legend_varea.max = 12;
 //
 //
             function set_color_vol(color, position, white_position) {
 
-                this.legend.colors = [];
-                for(let i = 0;i < 256;++i) {
-                    let h,s,l;
-                    if(this.gui.overlay == "r2") {
-                        //r2 is shown as just gray
-                        h = 0;
-                        s = 0;
-                        l = map_value(i, 0, 256, 0, 1);
-                    } else {
-                        h = map_value(i, 0, 256, 0, 240); //red to blue
-                        s = 1;
-                        l = 0.5;
-                    }
-                    this.legend.colors.push(hsl_to_rgb(h, s, l));
-                }
 
-                this.legend.min = vmin;
-                this.legend.max = vmax;
 
 
                 color.needsUpdate = true;
@@ -499,9 +524,9 @@ new Vue({
                     if(v) {
                         // let v_val = v.get(vx, vy, vz);
                         let v_val = v.get_avg(white_position, position, affine, i); 
-//			if (this.gui.overlay == "r2*varea") {
-//				v_val = v.get(vx, vy, vz);
-//			}
+			if (this.gui.overlay == "r2*varea") {
+				v_val = v.get(vx, vy, vz); // shouldn't average vals for visual area
+			}
                         if(isNaN(v_val) || (v_val == 0 && this.gui.overlay != 'r2*polar_angle')) {
                             color.setXYZ(i, 50, 50, 100); 
                             continue;
@@ -524,24 +549,7 @@ new Vue({
             }
 
             function set_color_surf(color, r2, v) {
-                this.legend.colors = [];
-                for(let i = 0;i < 256;++i) {
-                    let h,s,l;
-                    if(this.gui.overlay == "r2") {
-                        //r2 is shown as just gray
-                        h = 0;
-                        s = 0;
-                        l = map_value(i, 0, 256, 0, 1);
-                    } else {
-                        h = map_value(i, 0, 256, 0, 240); //red to blue
-                        s = 1;
-                        l = 0.5;
-                    }
-                    this.legend.colors.push(hsl_to_rgb(h, s, l));
-                }
 
-                this.legend.min = vmin;
-                this.legend.max = vmax;
 
                 color.needsUpdate = true;
 
@@ -571,7 +579,11 @@ new Vue({
                             color.setXYZ(i, 50, 50, 100); 
                             continue;
                         }
-                        h = map_value(v_val, vmin, vmax, 0, 240); //red to blue
+                        if(this.gui.overlay == "r2*varea") {
+                            h = map_value(v_val, 0, 12, 0, 320); //red to blue
+                        } else {
+                            h = map_value(v_val, vmin, vmax, 0, 240);
+                        }
                         s = 1;
                         //if(i % 10000 == 0) console.log(v_val, r2_val, vx, vy, vz, h);
                     } else {

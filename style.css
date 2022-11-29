@@ -67,3 +67,29 @@ float: left;
 .color-legend .max {
 float: right;
 }
+.color-legend-varea {
+width: 256px;
+position: fixed;
+bottom: 5px;
+left: 5px;
+color: white;
+font-size: 8pt;
+text-align: center;
+}
+.color-legend-varea .color {
+width: 12px;
+height: 12px;
+display: inline-block;
+margin: 3.841px;
+margin-bottom: -5px;
+}
+.color-legend-varea .rois {
+width: 12px;
+display: inline-block;
+margin: 3.841px;
+font-family: 'Open Sans';
+color: white;
+font-size: 8.5px;
+font-weight: bold;
+opacity: 1.0;
+}
