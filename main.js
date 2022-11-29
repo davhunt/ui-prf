@@ -457,7 +457,7 @@ new Vue({
             this.legend_varea.colors = [];
             for(let i = 0;i < 13;++i) {
                 let h;
-                h = map_value(i, 0, 12, 0, 320); //red to blue
+                h = map_value(i, 0, 12, 0, 340); //red to purple
                 this.legend_varea.colors.push(hsl_to_rgb(h, 1, 0.5));
             }
 
@@ -580,7 +580,7 @@ new Vue({
                             continue;
                         }
                         if(this.gui.overlay == "r2*varea") {
-                            h = map_value(v_val, 0, 12, 0, 320); //red to blue
+                            h = map_value(v_val, 0, 12, 0, 340); //red to purple
                         } else {
                             h = map_value(v_val, vmin, vmax, 0, 240);
                         }
