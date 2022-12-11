@@ -20,7 +20,7 @@ function hsl_to_rgb(h, s, l) {
         r = 0; g = x1; b = c;
     } else if (240 <= h && h < 300) {
         r = x1; g = 0; b = c;
-    } else if (300 <= h && h < 360) {
+    } else if (300 <= h && h <= 360) {
         r = c; g = 0; b = x1;
     }
     r = Math.round((r + m) * 255);
@@ -28,6 +28,46 @@ function hsl_to_rgb(h, s, l) {
     b = Math.round((b + m) * 255);
     //color.setXYZ(i, r, g, b);
     return {r,g,b};
+}
+
+function polar_angle_make_symmetric(val, data_type, hemi, sym) {
+    let h;
+    if (sym == true) {
+        if (data_type == 'vol') {
+            if (0 <= val && val < 90) {
+                return (4/3*val + 120);
+            } else if (90 <= val && val < 270) {
+                return (-4/3*val + 360);
+            } else if (270 <= val && val <= 360) {
+                return (4/3*val - 360);
+            }
+        }
+        else if (data_type == 'surf') {
+            if (hemi == 'lh') {
+                if (0 <= val && val < 90) {
+                    return (4/3*val + 120);
+                } else if (90 <= val && val < 270) {
+                    return (2/3*val + 180);
+                } else if (270 <= val && val <= 360) {
+                    return (4/3*val - 360);
+                }
+            } else if (hemi == 'rh') {
+                if (0 <= val && val < 90) {
+                    return (-2/3*val + 300);
+                } else if (90 <= val && val < 270) {
+                    return (-4/3*val + 360);
+                } else if (270 <= val && val <= 360) {
+                    return (-2/3*val + 540);
+                }
+            }
+        }
+    } else {
+        if(0 <= val && val < 240) {
+            return val + 120;
+        } else if(240 <= val && val <= 360) {
+            return -val + 480;
+        }
+    }
 }
 
 new Vue({
@@ -58,6 +98,7 @@ new Vue({
                 overlay_type: 'volume',
                 //overlay: 'r2',
                 r2_offset: 0,                  
+                symmetric_pang: true,
 
                 threshold_r2: false,
                 threshold_level: 0.15,
@@ -126,13 +167,20 @@ new Vue({
             <span>Zoom</span>
             <span>Pan</span>
             <br>
-            <img src="trans.png" height="50px"/>
+            <img src="controls.png" height="50px"/>
         </div>
         <div class="color-legend" v-if="legend.colors.length > 0 && gui.overlay != 'r2*varea'">
             <div class="color" v-for="color in legend.colors" :style="{'background-color': 'rgb('+color.r+','+color.g+', '+color.b+')'}"/>
             <br>
             <span class="min">{{legend.min.toFixed(2)}}</span>
             <span class="max">{{legend.max.toFixed(2)}}</span>
+        </div>
+        <div class="polar-angle-legend" v-if="gui.overlay == 'r2*polar_angle' && gui.symmetric_pang == true">
+            <span class="left"><img src="polarAngle_left.png" height="120px"/></span>
+            <span class="right"><img src="polarAngle_right.png" height="120px"/></span>
+        </div>
+        <div class="polar-angle-legend-360" v-if="gui.overlay == 'r2*polar_angle' && gui.symmetric_pang == false">
+            <span class="center"><img src="polarAngle_center.png" height="120px"/></span>
         </div>
         <div class="color-legend-varea" v-if="gui.overlay == 'r2*varea'">
             <div class="color" v-for="color in legend_varea.colors" :style="{'background-color': 'rgb('+color.r+','+color.g+', '+color.b+')'}"/>
@@ -233,6 +281,9 @@ new Vue({
             });
 
             overlay.add(this.gui, 'r2_offset', 0, 1).step(0.01).onChange(v=>{
+                this.update_color();
+            });
+            overlay.add(this.gui, 'symmetric_pang', true, false).onChange(v=>{
                 this.update_color();
             });
                         /*
@@ -427,8 +478,8 @@ new Vue({
                     vmax = Math.max(r2_lh.stats.max, r2_rh.stats.max);
                 }
 
-                set_color_surf.call(this, lh_color, r2_lh, v_lh);
-                set_color_surf.call(this, rh_color, r2_rh, v_rh);
+                set_color_surf.call(this, lh_color, r2_lh, v_lh, 'lh');
+                set_color_surf.call(this, rh_color, r2_rh, v_rh, 'rh');
 
                 break;
             }
@@ -441,6 +492,14 @@ new Vue({
                     h = 0;
                     s = 0;
                     l = map_value(i, 0, 256, 0, 1);
+                } else if(this.gui.overlay == "r2*polar_angle" && this.gui.symmetric_pang == false) {
+                    if(i <= 169) {
+                        h = map_value(i, 0, 169, 120, 360); // green to red
+                    } else {
+                        h = map_value(i, 170, 256, 0, 120); // red to green
+                    }
+                    s = 1;
+                    l = 0.5;
                 } else {
                     h = map_value(i, 0, 256, 0, 240); //red to blue
                     s = 1;
@@ -450,12 +509,22 @@ new Vue({
             }
 
                 
-
-            this.legend.min = vmin;
-            this.legend.max = vmax;
+            if(this.gui.overlay == "r2*polar_angle") {
+                if(this.gui.symmetric_pang == true) {
+                    this.legend.min = -90;
+                    this.legend.max = 90;
+                } else if(this.gui.symmetric_pang == false) {
+                    this.legend.min = 0;
+                    this.legend.max = 360;
+                }
+            } else {
+                this.legend.min = vmin;
+                this.legend.max = vmax;
+            }
 
             this.legend_varea.colors = [];
-            for(let i = 0;i < 13;++i) {
+            this.legend_varea.colors.push(hsl_to_rgb(0, 0.5, 0));
+            for(let i = 1;i < 13;++i) {
                 let h;
                 h = map_value(i, 0, 12, 0, 340); //red to purple
                 this.legend_varea.colors.push(hsl_to_rgb(h, 1, 0.5));
@@ -531,7 +600,13 @@ new Vue({
                             color.setXYZ(i, 50, 50, 100); 
                             continue;
                         }
-                        h = map_value(v_val, vmin, vmax, 0, 240); //red to blue
+                        if(this.gui.overlay == "r2*varea") {
+                            h = map_value(v_val, 0, 12, 0, 340); //red to purple
+                        } else if(this.gui.overlay == "r2*polar_angle") {
+                            h = polar_angle_make_symmetric(v_val, 'vol', 'both', this.gui.symmetric_pang);
+                        } else {
+                            h = map_value(v_val, vmin, vmax, 0, 240); //red to blue
+                        }
                         s = 1;
                         //if(i % 10000 == 0) console.log(v_val, r2_val, vx, vy, vz, h);
                     } else {
@@ -548,7 +623,7 @@ new Vue({
                 
             }
 
-            function set_color_surf(color, r2, v) {
+            function set_color_surf(color, r2, v, hemi) {
 
 
                 color.needsUpdate = true;
@@ -581,6 +656,8 @@ new Vue({
                         }
                         if(this.gui.overlay == "r2*varea") {
                             h = map_value(v_val, 0, 12, 0, 340); //red to purple
+                        } else if(this.gui.overlay == "r2*polar_angle") {
+                            h = polar_angle_make_symmetric(v_val, 'surf', hemi, this.gui.symmetric_pang);
                         } else {
                             h = map_value(v_val, vmin, vmax, 0, 240);
                         }
