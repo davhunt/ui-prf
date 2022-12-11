@@ -31,7 +31,7 @@ function hsl_to_rgb(h, s, l) {
 }
 
 function polar_angle_make_symmetric(val, data_type, hemi, sym) {
-    let h;
+    // go with convention UVM -> blue, LVM -> red, horizontal azimuth -> green for left or right visual hemifield
     if (sym == true) {
         if (data_type == 'vol') {
             if (0 <= val && val < 90) {
@@ -393,7 +393,7 @@ new Vue({
                 if(v) {
                     vmin = v.stats.min;
                     // debugger;
-                    // Make vmax 90th percentile of values in case of eccentricity or rfWidth overlay
+                    // Make vmax 90th percentile of values in case of eccentricity or rfWidth overlay because of outliers
                     switch(this.gui.overlay) {
                         case "r2*eccentricity":
                         case "r2*rf_width":
@@ -511,7 +511,7 @@ new Vue({
                 
             if(this.gui.overlay == "r2*polar_angle") {
                 if(this.gui.symmetric_pang == true) {
-                    this.legend.min = -90;
+                    this.legend.min = -90; // or 270
                     this.legend.max = 90;
                 } else if(this.gui.symmetric_pang == false) {
                     this.legend.min = 0;
@@ -530,15 +530,7 @@ new Vue({
                 this.legend_varea.colors.push(hsl_to_rgb(h, 1, 0.5));
             }
 
-
-            //this.legend_varea.min = 1;
-            //this.legend_varea.max = 12;
-//
-//
             function set_color_vol(color, position, white_position) {
-
-
-
 
                 color.needsUpdate = true;
 
@@ -639,7 +631,6 @@ new Vue({
 
                     let h, s, l;
                     if(this.gui.threshold_r2) {
-                        // if(r2_val >= this.gui.threshold_level) {
                         if(r2_val - this.gui.r2_offset >= this.gui.threshold_level) {
                             l = 0.5;
                         } else {
@@ -779,8 +770,6 @@ new Vue({
 		});
                 Promise.all(promises).then(outs=>{
                     console.log("loaded all volumes");
-                    //console.dir(outs);
-
                     this.prf.vol.r2 = outs[0];
                     this.prf.vol.p_angle = outs[1];
                     this.prf.vol.rf_width = outs[2];
@@ -910,7 +899,6 @@ new Vue({
                                 if (!isNaN(image[idx])) {
                                     sum = sum + image[idx];
                                     n = n+1;
-                                    // console.log(image[idx]);
                                 }
                             }
                             return sum/n;
