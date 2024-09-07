@@ -556,7 +556,8 @@ new Vue({
                     //convert it to voxel coords and get the value
                     let header = this.prf.vol.r2.header;
                     //var affine = matrix_invert(header.affine);
-                    var inv_affine = Sylvester.Matrix.create(header.affine); // vol -> surface affine -- Sylvester var from matrix-inverse.js (module?)
+                    var inv_affine = Sylvester.Matrix.create(header.affine); // vol -> surface affine -- Sylvester var from matrix-inverse.js (module?) (ReferenceError: module is not defined ?? ES import vs CommonJS import? seems fine to ignore)
+	            
                     var affine = inv_affine.inverse().elements // surface coords -> volume coords affine
                     let vx = Math.round(x*affine[0][0] + y*affine[0][1] + z*affine[0][2] + affine[0][3]);
                     let vy = Math.round(x*affine[1][0] + y*affine[1][1] + z*affine[1][2] + affine[1][3]);

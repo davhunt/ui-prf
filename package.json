@@ -1,9 +1,12 @@
 {
   "name": "ui-prf",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "HTML5/threejs based PRF Map viewer. It takes series of VTK files converted from freesurfer surface data (/surf) and pRF output .nii.gz",
+  "main": "index.html",
   "scripts": {
+    "start": "npm run lite",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lite": "lite-server",
     "dev": "lite-server",
     "bundle": "browserify bundle.js -o bundled.js"
   },
@@ -12,14 +15,26 @@
   "dependencies": {
     "dat.gui": "^0.7.6",
     "gifti-reader-js": "^0.4.4",
-    "matrix-inverse": "^1.0.1",
+    "matrix-inverse": "^2.0.0",
     "ndarray": "^1.0.18",
     "nifti-js": "^1.0.1",
     "nifti-reader-js": "^0.5.4",
-    "npm": "^6.9.0",
+    "npm": "^10.4.0",
+    "npmcli": "^1.2.2",
     "pako": "^1.0.10",
     "panning-orbit-controls": "^1.0.1",
     "three": "^0.103.0",
     "vue": "^2.6.10"
-  }
+  },
+  "devDependencies": {
+    "lite-server": "^2.6.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/davhunt/ui-prf.git"
+  },
+  "bugs": {
+    "url": "https://github.com/davhunt/ui-prf/issues"
+  },
+  "homepage": "https://github.com/davhunt/ui-prf#readme"
 }
